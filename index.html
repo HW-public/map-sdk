@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8"/>
+    <link rel="icon" type="image/svg+xml" href="./public/icon.svg"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MAP-SDK</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; overflow: hidden; }
+        #app { width: 100vw; height: 100vh; position: relative; }
+        .toolbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            background: rgba(26, 26, 46, 0.2);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 12px;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
+        .toolbar button {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #e94560;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .toolbar button:hover { background: #c73e54; }
+        .toolbar .info { margin-left: auto; font-size: 12px; opacity: 0.8; }
+        .map-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .map-wrap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        /* 地图右上角 2D/3D 切换按钮 */
+        .map-toggle-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 6px 6px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 100;
+            user-select: none;
+            font-family: system-ui, sans-serif;
+            transition: background 0.2s;
+        }
+        .map-toggle-btn:hover {
+            background: rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="toolbar">
+        <button id="btn-fly">飞行定位</button>
+        <button id="btn-draw-point">绘制点</button>
+        <button id="btn-draw-line">绘制线</button>
+        <button id="btn-draw-polygon">绘制面</button>
+        <button id="btn-add-feature">添加要素</button>
+        <span class="info">2D/3D地图 SDK</span>
+    </div>
+    <div class="map-container" id="map-container">
+        <div class="map-wrap" id="map-single"></div>
+    </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
