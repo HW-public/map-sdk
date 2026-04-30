@@ -17,38 +17,39 @@
 ```
 src/
 ├── core/
-│   ├── BaseMap.ts      # 抽象基类，实现 IMap / IMapLayers / IMapOverlays
+│   ├── BaseMap.ts      # 抽象基类，定义 IMap 核心服务 + 功能方法默认实现
 │   ├── MapSDK.ts       # SDK 入口，工厂模式 + 2D/3D 切换管理
 │   └── index.ts        # core 模块导出
 ├── ol/
 │   ├── OlMap.ts        # OpenLayers 2D 引擎实现
 │   ├── layers/
-│   │   └── addTianditu.ts  # OL 天地图图层加载
+│   │   └── addTianditu.ts  # OL 天地图图层加载模块
 │   ├── operation/
-│   │   ├── Draw.ts     # 点、线、面绘制
+│   │   ├── Draw.ts     # 点、线、面交互绘制
 │   │   ├── Select.ts   # 点选、框选
 │   │   └── index.ts
-│   ├── utils.ts        # OL 工具函数
 │   └── index.ts        # ol 模块导出
 ├── cesium/
 │   ├── CesiumMap.ts    # Cesium 3D 引擎实现
 │   ├── layers/
-│   │   └── addTianditu.ts  # Cesium 天地图图层加载
+│   │   └── addTianditu.ts  # Cesium 天地图图层加载模块
 │   ├── operation/
-│   │   ├── Draw.ts     # 点、线、面绘制
+│   │   ├── Draw.ts     # 点、线、面交互绘制
 │   │   ├── Select.ts   # 点选、框选
 │   │   └── index.ts
-│   ├── utils.ts        # Cesium 工具函数
 │   └── index.ts        # cesium 模块导出
 ├── state/
 │   ├── StateManager.ts # 地图状态、跨切换事件缓存
 │   ├── LayerManager.ts # 图层记录与恢复
-│   ├── OverlayManager.ts # 绘制要素记录与恢复
+│   ├── OverlayManager.ts # 绘制要素记录与恢复（同 id 自动去重）
 │   └── index.ts        # state 模块导出
 ├── ui/
 │   └── MapToggleBtn.ts # 2D/3D 切换按钮
 ├── types/
-│   └── index.ts        # TypeScript 类型定义
+│   ├── map.ts          # MapType / MapConfig / MapEvent / MapState
+│   ├── layer.ts        # LayerInfo / TiandituLayerInfo
+│   ├── feature.ts      # FeatureType / FeatureInfo / DrawOptions
+│   └── index.ts        # 统一导出 + SwitchToOptions / IMap
 ├── utils/
 │   └── index.ts        # 通用工具函数
 ├── index.ts            # SDK 对外导出
@@ -199,22 +200,63 @@ sdk.destroy()
 ```typescript
 map.addFeature({
   type: 'point',
-  coords: [[116.3974, 39.9093]],
   id: 'beijing',
-  style: { color: '#ff0000' },
+  coords: [[116.3974, 39.9093]],
+  style: { pointColor: '#ff0000', radius: 6 },
 })
 
 map.addFeature({
   type: 'polyline',
+  id: 'shanghai-line',
   coords: [
     [116.3974, 39.9093],
     [121.4737, 31.2304],
   ],
+  style: { stroke: '#00aaff', strokeWidth: 3 },
+})
+
+map.addFeature({
+  type: 'polygon',
+  id: 'test-polygon',
+  coords: [
+    [116.3874, 39.8993],
+    [116.3974, 39.9193],
+    [116.4074, 39.8993],
+    [116.3874, 39.8993],
+  ],
+  style: { fill: 'rgba(0, 170, 255, 0.2)', stroke: '#00aaff', strokeWidth: 2 },
 })
 
 // 清除所有绘制要素
 map.clearFeatures()
 ```
+
+### 7. 交互式绘制
+
+```typescript
+// 交互式绘制点（单击完成）
+map.drawPoint({
+  style: { pointColor: '#ff0000', radius: 6 },
+  onComplete: (feature) => console.log('绘制点完成:', feature),
+})
+
+// 交互式绘制线（点击加点、双击结束）
+map.drawLine({
+  style: { stroke: '#00aaff', strokeWidth: 3 },
+  onComplete: (feature) => console.log('绘制线完成:', feature),
+})
+
+// 交互式绘制面（点击加点、双击结束）
+map.drawPolygon({
+  style: { fill: 'rgba(0, 170, 255, 0.2)', stroke: '#00aaff', strokeWidth: 2 },
+  onComplete: (feature) => console.log('绘制面完成:', feature),
+})
+
+// 终止当前绘制
+map.stopDraw()
+```
+
+> **注意**：交互式绘制完成后，要素会自动进入 `OverlayManager`，切换 2D/3D 时会自动恢复，无需手动调用 `addFeature`。
 
 ## API 文档
 
@@ -231,7 +273,9 @@ map.clearFeatures()
 
 ### IMap 接口
 
-所有地图实例均实现此核心服务接口：
+所有地图实例均实现此接口，包含**核心服务**与**功能方法**：
+
+**核心服务**
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
@@ -246,22 +290,17 @@ map.clearFeatures()
 | getState | - | `MapState` | 获取当前状态 |
 | setState | `state` | `void` | 恢复状态 |
 
-### IMapLayers 接口
-
-图层功能接口：
+**功能方法**
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| loadTianditu | `key` | `void` | 加载天地图底图 |
-
-### IMapOverlays 接口
-
-绘制功能接口：
-
-| 方法 | 参数 | 返回值 | 说明 |
-|------|------|--------|------|
-| addFeature | `feature` | `void` | 添加绘制要素 |
+| loadTianditu | `key: string` | `void` | 加载天地图底图 |
+| addFeature | `feature: FeatureInfo` | `void` | 添加绘制要素（同 id 会自动覆盖旧要素） |
 | clearFeatures | - | `void` | 清除所有绘制要素 |
+| drawPoint | `options?: DrawOptions` | `() => void` | 交互式绘制点，返回取消函数 |
+| drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
+| drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
+| stopDraw | - | `void` | 终止当前交互式绘制 |
 
 ### MapEvent
 
@@ -320,44 +359,84 @@ SDK 默认加载天地图 **影像底图 + 影像注记** 两层叠加：
 
 ## 扩展开发
 
-### 添加自定义 2D 图层
+### 添加新的图层类型
+
+SDK 采用 **统一入口 + switch 分发** 的图层扩展模式。新增一种图层类型只需三步：
+
+**1. 定义图层类型信息**
+
+在 `src/types/layer.ts` 中定义新的类型接口：
 
 ```typescript
-import { OlMap } from '@/ol/OlMap'
-import TileLayer from 'ol/layer/Tile'
-import XYZ from 'ol/source/XYZ'
+export interface WmsLayerInfo extends LayerInfo {
+  type: 'wms'
+  url: string
+  layers: string
+}
+```
 
-class CustomOlMap extends OlMap {
-  addCustomLayer() {
-    const olMap = this.getOlMap()
-    if (!olMap) return
-    olMap.addLayer(new TileLayer({
-      source: new XYZ({
-        url: 'https://example.com/tile/{z}/{x}/{y}.png'
-      })
-    }))
+**2. 创建引擎渲染模块**
+
+为 2D 和 3D 各添加一个独立的加载模块：
+
+```typescript
+// src/ol/layers/addWms.ts
+import type { Map } from 'ol'
+import TileLayer from 'ol/layer/Tile'
+import TileWMS from 'ol/source/TileWMS'
+
+export function addWms(map: Map, url: string, layers: string) {
+  map.addLayer(new TileLayer({
+    source: new TileWMS({ url, params: { LAYERS: layers } }),
+  }))
+}
+```
+
+```typescript
+// src/cesium/layers/addWms.ts
+import * as Cesium from 'cesium'
+
+export function addWms(viewer: Cesium.Viewer, url: string, layers: string) {
+  viewer.imageryLayers.addImageryProvider(
+    new Cesium.WebMapServiceImageryProvider({ url, layers })
+  )
+}
+```
+
+**3. 在引擎中注册 case**
+
+在 `OlMap.loadLayer` 和 `CesiumMap.loadLayer` 各加一行 `case`：
+
+```typescript
+// src/ol/OlMap.ts
+import { addWms } from './layers/addWms'
+
+protected loadLayer(layer: LayerInfo): void {
+  switch (layer.type) {
+    case 'tianditu':
+      addTianditu(this.map, { key: (layer as TiandituLayerInfo).key })
+      break
+    case 'wms':
+      addWms(this.map, (layer as WmsLayerInfo).url, (layer as WmsLayerInfo).layers)
+      break
   }
 }
 ```
 
+`BaseMap`、`restoreLayers`、`LayerManager` 均不需要修改。
+
 ### 添加自定义 3D 实体
 
-```typescript
-import { CesiumMap } from '@/cesium/CesiumMap'
-import * as Cesium from 'cesium'
+如需在 Cesium 实例上直接操作，可通过 `instanceof` 获取原生 Viewer：
 
-class CustomCesiumMap extends CesiumMap {
-  addPoint(lon: number, lat: number) {
-    const viewer = this.getViewer()
-    if (!viewer) return
-    viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(lon, lat, 0),
-      point: {
-        pixelSize: 10,
-        color: Cesium.Color.RED,
-      }
-    })
-  }
+```typescript
+const current = sdk.getMap()
+if (current instanceof CesiumMap) {
+  const viewer = current.getViewer()
+  viewer?.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(116.3974, 39.9093, 0),
+    point: { pixelSize: 10, color: Cesium.Color.RED },
+  })
 }
 ```
 
@@ -367,4 +446,6 @@ class CustomCesiumMap extends CesiumMap {
 2. **体积优化**：Cesium 资源较大，建议按需加载或配置 CDN。
 3. **跨域**：天地图瓦片服务支持 CORS，已配置 `crossOrigin: 'anonymous'`。
 4. **事件持久化**：在 `both` 模式下，建议通过 `sdk.on()` / `sdk.off()` 注册事件，切换引擎后会自动重新绑定；直接调用 `map.on()` 的事件在切换后会失效。
-5. **Cesium off**：Cesium 引擎的 `off()` 当前为无操作（handler 未做跟踪回收），切换引擎时会通过销毁实例自动释放。
+5. **Cesium off**：Cesium 引擎的 `off()` 当前为无操作（handler 未做跟踪回收），切换引擎时会通过销毁实例自动释放。OpenLayers 端的 `off()` 已正常实现。
+6. **同 id 去重**：`addFeature` 传入的 `feature.id` 若与已有要素重复，会自动覆盖旧要素（OverlayManager、2D 矢量层、3D entity 三层同步去重）。
+7. **交互式绘制自动同步**：`drawPoint` / `drawLine` / `drawPolygon` 完成后，要素会自动进入 `OverlayManager`，2D/3D 切换时无需额外处理即可恢复。
