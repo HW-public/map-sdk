@@ -14,6 +14,8 @@ import 'cesium/Build/Cesium/Widgets/widgets.css'
  */
 export class CesiumMap extends BaseMap {
   private viewer: Cesium.Viewer | null = null
+  /** OpenLayers zoom 0 时赤道分辨率（米/像素） */
+  private readonly OL_RESOLUTION_Z0 = 156543.03392804097
 
   async init(): Promise<void> {
     this.viewer = new Cesium.Viewer(this.container, {
@@ -33,7 +35,7 @@ export class CesiumMap extends BaseMap {
 
     const center = this.config.center ?? [116.3974, 39.9093]
     const zoom = this.config.zoom ?? 10
-    const height = 10000000 / Math.pow(2, zoom)
+    const height = this.zoomToHeight(zoom)
 
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(center[0], center[1], height),
@@ -75,7 +77,7 @@ export class CesiumMap extends BaseMap {
     if (!this.viewer) return
     const center = this.getCenter()
     if (!center) return
-    const height = 10000000 / Math.pow(2, zoom)
+    const height = this.zoomToHeight(zoom)
     this.viewer.camera.setView({
       destination: Cesium.Cartesian3.fromDegrees(center[0], center[1], height),
     })
@@ -84,12 +86,12 @@ export class CesiumMap extends BaseMap {
   getZoom(): number | undefined {
     if (!this.viewer) return undefined
     const height = this.viewer.camera.positionCartographic.height
-    return Math.log2(10000000 / height)
+    return this.heightToZoom(height)
   }
 
   flyTo(lon: number, lat: number, zoom?: number): void {
     if (!this.viewer) return
-    const height = zoom ? 10000000 / Math.pow(2, zoom) : this.viewer.camera.positionCartographic.height
+    const height = zoom !== undefined ? this.zoomToHeight(zoom) : this.viewer.camera.positionCartographic.height
     this.viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(lon, lat, height),
       duration: 1,
@@ -131,6 +133,27 @@ export class CesiumMap extends BaseMap {
     return this.viewer
   }
 
+  /** 根据地理范围框选相机（WGS84：[minLon, minLat, maxLon, maxLat]） */
+  fitViewportExtent(extent: [number, number, number, number]): void {
+    if (!this.viewer) return
+    this.viewer.camera.setView({
+      destination: Cesium.Rectangle.fromDegrees(extent[0], extent[1], extent[2], extent[3]),
+    })
+  }
+
+  /** 获取当前视口可见的地理范围（WGS84：[minLon, minLat, maxLon, maxLat]） */
+  getViewportExtent(): [number, number, number, number] | undefined {
+    if (!this.viewer) return undefined
+    const rect = this.viewer.camera.computeViewRectangle()
+    if (!rect) return undefined
+    return [
+      Cesium.Math.toDegrees(rect.west),
+      Cesium.Math.toDegrees(rect.south),
+      Cesium.Math.toDegrees(rect.east),
+      Cesium.Math.toDegrees(rect.north),
+    ]
+  }
+
   private getCesiumEventType(event: string): Cesium.ScreenSpaceEventType | undefined {
     switch (event) {
       case 'click':
@@ -144,6 +167,37 @@ export class CesiumMap extends BaseMap {
       default:
         return undefined
     }
+  }
+
+  /** 获取 Cesium 当前垂直视场角（弧度），未就绪时按水平 60° 和 16:9 估算约 35° */
+  private getFovy(): number {
+    const frustum = this.viewer?.camera.frustum as Cesium.PerspectiveFrustum | undefined
+    if (frustum?.fovy) return frustum.fovy
+    // Cesium 默认水平 FOV = 60°，按常见 16:9 屏幕估算 fovy
+    const fov = Cesium.Math.toRadians(60)
+    const aspect = 16 / 9
+    return 2 * Math.atan(Math.tan(fov / 2) / aspect)
+  }
+
+  /** 获取 canvas 高度，未就绪时用容器高度兜底 */
+  private getCanvasHeight(): number {
+    return (this.viewer?.scene.canvas.height ?? this.container.clientHeight) || 900
+  }
+
+  /** OpenLayers zoom → Cesium camera height */
+  private zoomToHeight(zoom: number): number {
+    const canvasHeight = this.getCanvasHeight()
+    const fovy = this.getFovy()
+    const olResolution = this.OL_RESOLUTION_Z0 / Math.pow(2, zoom)
+    return (olResolution * canvasHeight) / (2 * Math.tan(fovy / 2))
+  }
+
+  /** Cesium camera height → OpenLayers zoom */
+  private heightToZoom(height: number): number {
+    const canvasHeight = this.getCanvasHeight()
+    const fovy = this.getFovy()
+    const olResolution = (height * 2 * Math.tan(fovy / 2)) / canvasHeight
+    return Math.log2(this.OL_RESOLUTION_Z0 / olResolution)
   }
 
   addFeature(feature: FeatureInfo): void {

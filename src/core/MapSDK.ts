@@ -83,7 +83,7 @@ export class MapSDK {
    * @returns 创建的引擎实例，类型根据 config.type 自动推断
    */
   async init(config: MapConfig & { type: '2d' }): Promise<OlMap>
-  async init(config: MapConfig & { type: '3d' }): Promise<OlMap>
+  async init(config: MapConfig & { type: '3d' }): Promise<CesiumMap>
   async init(config: MapConfig & { type: 'both' }): Promise<BaseMap>
   async init(config: MapConfig): Promise<BaseMap> {
     this.currentConfig = { ...config }
@@ -146,22 +146,27 @@ export class MapSDK {
     const syncLayers = rawLayers !== false
     const layerFilter = Array.isArray(rawLayers) ? rawLayers : null
 
-    // === 步骤 1：捕获旧实例的实时状态 ===
-    // 旧实例上可能发生了用户交互（拖拽、缩放），缓存的 stateMgr 数据已过时，
-    // 所以先从旧实例读取最新状态（中心点、缩放），更新到 stateMgr 中。
+    // === 捕获旧实例的实时状态（兜底用）===
+    // 主路径现在走 extent 同步，但 stateMgr 仍需最新数据作为 fallback，
+    // 且后续步骤9恢复跨切换事件监听依赖 stateMgr。
     const liveState = this.impl?.getState()
     if (liveState) {
       this.stateMgr.setState(liveState)
     }
 
-    // === 步骤 2：捕获旧实例的图层与绘制要素 ===
+    // === 捕获旧实例的图层、绘制要素与视图范围 ===
     // LayerManager 记录了用户通过 loadTianditu 添加的所有底图，
     // OverlayManager 记录了通过 addFeature 添加的所有绘制要素（点、线、面）。
-    // 这些数据需要在切换后恢复到新实例上。
     const layers = this.impl?.getLayerManager().getAll() ?? []
     const features = this.impl?.getOverlayManager().getAll() ?? []
+    const oldExtent =
+      this.impl instanceof OlMap
+        ? this.impl.getViewportExtent()
+        : this.impl instanceof CesiumMap
+          ? this.impl.getViewportExtent()
+          : undefined
 
-    // === 步骤 3：销毁旧实例 ===
+    // === 销毁旧实例 ===
     // 释放引擎占用的资源（canvas、DOM、事件监听、网络请求等），
     // 防止内存泄漏。销毁后 this.impl 置为 null，避免后续误用。
     if (this.impl) {
@@ -169,25 +174,30 @@ export class MapSDK {
       this.impl = null
     }
 
-    // === 步骤 4：检查配置可用性 ===
+    // === 检查配置可用性 ===
     // currentConfig 在 destroy() 时会被清空，如果此时调用 switchTo 则无配置可用。
     if (!this.currentConfig) {
       throw new Error('No config available for map switch')
     }
 
-    // === 步骤 5：创建新引擎实例 ===
+    // === 创建新引擎实例 ===
     // 基于原始配置，将 type 替换为目标类型（2d → OlMap，3d → CesiumMap）。
     const config = { ...this.currentConfig, type }
     this.impl = await this.create(config)
 
-    // === 步骤 6：恢复地图状态 ===
-    // 将步骤 1 捕获的实时状态（中心点、缩放）应用到新实例，
-    // 保证切换后用户看到的视角与切换前一致。
+    // === 恢复地图状态 ===
+    // 双向切换都优先用 extent 同步，绕过 zoom/height 公式换算的累积误差。
     if (syncState) {
-      this.impl!.setState(this.stateMgr.getState())
+      if (oldExtent && this.impl instanceof CesiumMap) {
+        this.impl.fitViewportExtent(oldExtent)
+      } else if (oldExtent && this.impl instanceof OlMap) {
+        this.impl.fitViewportExtent(oldExtent)
+      } else {
+        this.impl!.setState(this.stateMgr.getState())
+      }
     }
 
-    // === 步骤 7：恢复图层 ===
+    // === 恢复图层 ===
     // 遍历步骤 2 捕获的 LayerInfo 列表，根据类型调用对应加载方法。
     // 支持按类型过滤：options.layers 为 string[] 时只恢复指定类型的图层。
     if (syncLayers) {
@@ -197,13 +207,13 @@ export class MapSDK {
       this.impl!.restoreLayers(filteredLayers)
     }
 
-    // === 步骤 8：恢复绘制要素 ===
+    // === 恢复绘制要素 ===
     // 遍历步骤 2 捕获的 FeatureInfo 列表，在新实例上重新绘制。
     if (syncFeatures) {
       this.impl!.restoreFeatures(features)
     }
 
-    // === 步骤 9：恢复跨切换持久化事件监听 ===
+    // === 恢复跨切换持久化事件监听 ===
     // 用户通过 sdk.on() 注册的事件会被 StateManager 缓存，
     // 切换后需要重新绑定到新实例上，否则事件将失效。
     if (syncEvents) {
@@ -214,7 +224,7 @@ export class MapSDK {
       }
     }
 
-    // === 步骤 10：更新切换按钮 ===
+    // === 更新切换按钮 ===
     // both 模式下右上角有切换按钮，需要更新按钮文字
     //（当前为 2D 时显示 "3D"，当前为 3D 时显示 "2D"）。
     // 首次切换时若按钮不存在，自动创建并挂载到容器上。
@@ -225,7 +235,7 @@ export class MapSDK {
       this.switcher.updateText(type)
     }
 
-    // === 步骤 11：返回代理对象（始终指向当前活跃实例） ===
+    // === 返回代理对象（始终指向当前活跃实例） ===
     return createForwardingProxy<BaseMap>(() => this.getMap()) as OlMap | CesiumMap
   }
 

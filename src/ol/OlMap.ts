@@ -95,6 +95,30 @@ export class OlMap extends BaseMap {
     return this.map
   }
 
+  /** 获取当前视口的地理范围（WGS84：[minLon, minLat, maxLon, maxLat]） */
+  getViewportExtent(): [number, number, number, number] | undefined {
+    if (!this.map) return undefined
+    const view = this.map.getView()
+    const size = this.map.getSize()
+    if (!size) return undefined
+    const ex = view.calculateExtent(size)
+    const sw = toLonLat([ex[0], ex[1]]) as [number, number]
+    const ne = toLonLat([ex[2], ex[3]]) as [number, number]
+    return [sw[0], sw[1], ne[0], ne[1]]
+  }
+
+  /** 根据地理范围适配视图（WGS84：[minLon, minLat, maxLon, maxLat]） */
+  fitViewportExtent(extent: [number, number, number, number]): void {
+    if (!this.map) return
+    const view = this.map.getView()
+    const size = this.map.getSize()
+    if (!size) return
+    view.fit(
+      [fromLonLat([extent[0], extent[1]]), fromLonLat([extent[2], extent[3]])].flat(),
+      { size, nearest: true }
+    )
+  }
+
   addFeature(feature: FeatureInfo): void {
     super.addFeature(feature)
     OlDraw.addFeature(this.map, feature)
