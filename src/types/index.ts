@@ -1,49 +1,13 @@
-export type MapType = '2d' | '3d' | 'both'
-
-export interface MapConfig {
-  container: string | HTMLElement
-  center?: [number, number]
-  zoom?: number
-  type: MapType
-}
-
-export interface MapEvent {
-  type: string
-  coordinate: [number, number]
-  pixel: [number, number]
-}
-
-export interface MapState {
-  center: [number, number]
-  zoom: number
-}
-
-export interface LayerInfo {
-  type: 'tianditu'
-  key: string
-}
+import type { MapEvent, MapState } from './map'
+export type { MapType, MapConfig, MapEvent, MapState } from './map'
+export type { LayerInfo, TiandituLayerInfo } from './layer'
+export type { FeatureType, FeatureInfo, DrawOptions } from './feature'
 
 export interface SwitchToOptions {
   state?: boolean
   layers?: boolean | string[]
   features?: boolean
   events?: boolean
-}
-
-export type FeatureType = 'point' | 'polyline' | 'polygon'
-
-export interface FeatureInfo {
-  type: FeatureType
-  coords: [number, number][]
-  id?: string
-  style?: Record<string, unknown>
-}
-
-/** 交互式绘制选项 */
-export interface DrawOptions {
-  style?: Record<string, unknown>
-  onComplete?: (feature: FeatureInfo) => void
-  onChange?: (coords: [number, number][]) => void
 }
 
 /**
