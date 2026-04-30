@@ -47,24 +47,33 @@ document.getElementById('btn-draw-polygon')!.addEventListener('click', () => {
         onComplete: (feature) => console.log('绘制面完成:', feature),
     })
 })
-// 添加要素
-document.getElementById('btn-add-feature')!.addEventListener('click', () => {
+// 添加点要素
+document.getElementById('btn-add-feature-point')!.addEventListener('click', () => {
     map.addFeature({
         type: 'point',
         id: 'point-1',
         coords: [[104.0668, 30.5728]],
         style: { pointColor: '#ff0000', radius: 4 }
     })
+    map.flyTo(104.0668, 30.5728, 12)
+})
+// 添加线要素
+document.getElementById('btn-add-feature-line')!.addEventListener('click', () => {
     map.addFeature({
         type: 'polyline',
-        id: 'point-1',
-        coords: [[104.0668, 30.5728], [104.0668, 30.5728]],
-        style: { pointColor: '#ff0000', radius: 4 }
+        id: 'line-1',
+        coords: [[104.0568, 30.5628], [104.0668, 30.5728], [104.0768, 30.5828]],
+        style: { stroke: '#00aaff', strokeWidth: 3 }
     })
+    map.flyTo(104.0668, 30.5728, 12)
+})
+// 添加面要素
+document.getElementById('btn-add-feature-polygon')!.addEventListener('click', () => {
     map.addFeature({
         type: 'polygon',
-        id: 'point-1',
-        coords: [[104.0668, 30.5728]],
-        style: { pointColor: '#ff0000', radius: 4 }
+        id: 'polygon-1',
+        coords: [[104.0568, 30.5728], [104.0668, 30.5828], [104.0768, 30.5728], [104.0668, 30.5628], [104.0568, 30.5728]],
+        style: { fill: 'rgba(0, 170, 255, 0.2)', stroke: '#00aaff', strokeWidth: 2 }
     })
+    map.flyTo(104.0668, 30.5728, 12)
 })
