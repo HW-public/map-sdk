@@ -201,6 +201,10 @@ export class OlDraw {
         return
     }
 
+    if (feature.id) {
+      const existing = source.getFeatureById(feature.id)
+      if (existing) source.removeFeature(existing)
+    }
     const f = new Feature(geom)
     f.setStyle(style)
     if (feature.id) f.setId(feature.id)

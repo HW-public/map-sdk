@@ -4,6 +4,9 @@ export class OverlayManager {
   private features: FeatureInfo[] = []
 
   add(feature: FeatureInfo): void {
+    if (feature.id) {
+      this.features = this.features.filter((f) => f.id !== feature.id)
+    }
     this.features.push(feature)
   }
 

@@ -1,7 +1,7 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapEvent, FeatureInfo, DrawOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
 import { OlDraw } from './operation'
@@ -16,7 +16,7 @@ import 'ol/ol.css'
 export class OlMap extends BaseMap {
   private map: Map | null = null
 
-  constructor(config: Parameters<typeof BaseMap.prototype.constructor>[0]) {
+  constructor(config: MapConfig) {
     super(config)
   }
 
@@ -35,10 +35,14 @@ export class OlMap extends BaseMap {
     })
   }
 
-  loadTianditu(key: string): void {
-    // 图层信息记录到 LayerManager
-    super.loadTianditu(key)
-    addTianditu(this.map, { key })
+  /** 子类实现：根据 layer.type 分发到具体渲染模块 */
+  protected loadLayer(layer: LayerInfo): void {
+    switch (layer.type) {
+      case 'tianditu':
+        addTianditu(this.map, { key: (layer as TiandituLayerInfo).key })
+        break
+      // 后续新增类型在这里加 case
+    }
   }
 
   destroy(): void {

@@ -1,7 +1,5 @@
 import {BaseMap, MapSDK} from '@/core'
 
-// 请替换为您自己的天地图 Key
-// 申请地址: https://console.tianditu.gov.cn/api/key
 const TIANDITU_KEY = 'dd92b4607cb0aadfc5e615028e99968e'
 
 const sdk: MapSDK = new MapSDK()

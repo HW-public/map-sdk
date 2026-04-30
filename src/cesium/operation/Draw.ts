@@ -28,7 +28,7 @@ function resolveStyle(style: Record<string, unknown> | undefined) {
 }
 
 function pickLonLat(viewer: Cesium.Viewer, position: Cesium.Cartesian2): [number, number] | undefined {
-    const cartesian: Cesium.Cartesian3 = viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid)
+    const cartesian = viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid)
     if (!cartesian) return undefined
     const cartographic: Cesium.Cartographic = Cesium.Cartographic.fromCartesian(cartesian)
     return [Cesium.Math.toDegrees(cartographic.longitude), Cesium.Math.toDegrees(cartographic.latitude)]
@@ -129,6 +129,7 @@ function syncTempPolygon(viewer: Cesium.Viewer, style: ReturnType<typeof resolve
                     )
                 )
             }, false),
+            height: 0,
             material: style.fill,
             outline: true,
             outlineColor: style.stroke,
@@ -187,6 +188,7 @@ function finishDraw(viewer: Cesium.Viewer, draw: ActiveDraw, style: ReturnType<t
                     hierarchy: new Cesium.PolygonHierarchy(
                         Cesium.Cartesian3.fromDegreesArray(ring.flatMap(([lon, lat]) => [lon, lat]))
                     ),
+                    height: 0,
                     material: style.fill,
                     outline: true,
                     outlineColor: style.stroke,
@@ -305,6 +307,11 @@ export class CesiumDraw {
     static addFeature(viewer: Cesium.Viewer | null, feature: FeatureInfo): void {
         if (!viewer || !feature.coords.length) return
 
+        if (feature.id) {
+            const existing = viewer.entities.getById(feature.id)
+            if (existing) viewer.entities.remove(existing)
+        }
+
         const style = resolveStyle(feature.style)
 
         switch (feature.type) {
@@ -350,6 +357,7 @@ export class CesiumDraw {
                         hierarchy: new Cesium.PolygonHierarchy(
                             Cesium.Cartesian3.fromDegreesArray(ring.flatMap(([lon, lat]) => [lon, lat]))
                         ),
+                        height: 0,
                         material: style.fill,
                         outline: true,
                         outlineColor: style.stroke,

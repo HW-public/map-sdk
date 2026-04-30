@@ -202,7 +202,7 @@ export class MapSDK {
     // 支持按类型过滤：options.layers 为 string[] 时只恢复指定类型的图层。
     if (syncLayers) {
       const filteredLayers = layerFilter
-        ? layers.filter((l) => layerFilter.includes(l.type))
+        ? layers.filter((l) => l.type && layerFilter.includes(l.type))
         : layers
       this.impl!.restoreLayers(filteredLayers)
     }

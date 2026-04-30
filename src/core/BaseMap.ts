@@ -1,4 +1,4 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, FeatureInfo, DrawOptions } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions } from '@/types'
 import { getElement } from '@/utils'
 import { LayerManager, OverlayManager } from '@/state'
 
@@ -9,12 +9,14 @@ import { LayerManager, OverlayManager } from '@/state'
  * 1. 核心服务方法（setCenter/flyTo/on/off 等）保持 abstract — 所有引擎必须实现
  * 2. 功能方法（loadTianditu/addFeature/clearFeatures）提供默认实现 —
  *    自动记录到 LayerManager/OverlayManager，引擎渲染部分由子类 override 补充
- * 3. restoreFeatures 直接复用 addFeature，restoreLayers 直接复用 loadTianditu —
- *    恢复即重放，不需要额外注册恢复函数
+ * 3. 图层恢复：BaseMap 提供 addLayer 统一流程（记录 + 触发渲染），
+ *    子类通过 loadLayer 用 switch 分发到具体模块
+ * 4. 要素恢复：直接复用 addFeature，子类 override 负责实际渲染
  *
- * 新增方法时的步骤：
- * - 不需要引擎定制 → 只改 BaseMap（加默认实现）
- * - 需要引擎定制 → BaseMap（加默认实现）+ 子类 override（super.xxx() + 引擎渲染）
+ * 新增图层类型时的步骤：
+ * - 加模块文件（如 addWms.ts）
+ * - OlMap.loadLayer / CesiumMap.loadLayer 各加一行 case
+ * - BaseMap 和 restoreLayers 一行不动
  */
 export abstract class BaseMap implements IMap {
   protected container: HTMLElement
@@ -60,18 +62,21 @@ export abstract class BaseMap implements IMap {
   // ==================== 功能方法（默认实现：记录到管理器） ====================
 
   /**
-   * 加载天地图底图。
+   * 添加图层 — 统一流程：记录到 LayerManager，再触发子类渲染。
    *
-   * 默认实现：记录到 LayerManager。子类如需实际渲染，请 override 并先调用 super。
-   *
-   * @example
-   * loadTianditu(key: string): void {
-   *   super.loadTianditu(key)  // 记录到 LayerStore
-   *   // ... 引擎实际渲染
-   * }
+   * 子类通过实现 loadLayer 完成具体渲染。
    */
+  private addLayer(layer: LayerInfo): void {
+    this.layerMgr.add(layer)
+    this.loadLayer(layer)
+  }
+
+  /** 子类实现：根据 layer.type 用 switch 分发到具体渲染模块 */
+  protected abstract loadLayer(layer: LayerInfo): void
+
+  /** 加载天地图底图 — 公共 API 糖衣，内部自动补 type */
   loadTianditu(key: string): void {
-    this.layerMgr.addTianditu(key)
+    this.addLayer({ type: 'tianditu',key } as TiandituLayerInfo)
   }
 
   /**
@@ -141,12 +146,10 @@ export abstract class BaseMap implements IMap {
 
   // ==================== 恢复机制（复用操作入口，恢复即重放） ====================
 
-  /** 恢复图层 — 直接复用 loadTianditu，子类 override 负责实际渲染 */
+  /** 恢复图层 — 遍历重放 addLayer，子类 loadLayer 负责具体渲染 */
   restoreLayers(layers: LayerInfo[]): void {
     for (const layer of layers) {
-      if (layer.type === 'tianditu') {
-        this.loadTianditu(layer.key)
-      }
+      this.addLayer(layer)
     }
   }
 

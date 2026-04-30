@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium'
-import type { MapEvent, FeatureInfo, DrawOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
 import { CesiumDraw } from './operation'
@@ -17,7 +17,7 @@ export class CesiumMap extends BaseMap {
   /** OpenLayers zoom 0 时赤道分辨率（米/像素） */
   private readonly OL_RESOLUTION_Z0 = 156543.03392804097
 
-  constructor(config: Parameters<typeof BaseMap.prototype.constructor>[0]) {
+  constructor(config: MapConfig) {
     super(config)
   }
 
@@ -47,10 +47,14 @@ export class CesiumMap extends BaseMap {
     })
   }
 
-  loadTianditu(key: string): void {
-    // 图层信息记录到 LayerManager
-    super.loadTianditu(key)
-    addTianditu(this.viewer, { key })
+  /** 子类实现：根据 layer.type 分发到具体渲染模块 */
+  protected loadLayer(layer: LayerInfo): void {
+    switch (layer.type) {
+      case 'tianditu':
+        addTianditu(this.viewer, { key: (layer as TiandituLayerInfo).key })
+        break
+      // 后续新增类型在这里加 case
+    }
   }
 
   destroy(): void {

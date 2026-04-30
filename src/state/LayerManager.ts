@@ -7,10 +7,6 @@ export class LayerManager {
     this.layers.push(layer)
   }
 
-  addTianditu(key: string): void {
-    this.layers.push({ type: 'tianditu', key })
-  }
-
   getAll(): LayerInfo[] {
     return [...this.layers]
   }
