@@ -17,6 +17,10 @@ export class CesiumMap extends BaseMap {
   /** OpenLayers zoom 0 时赤道分辨率（米/像素） */
   private readonly OL_RESOLUTION_Z0 = 156543.03392804097
 
+  constructor(config: Parameters<typeof BaseMap.prototype.constructor>[0]) {
+    super(config)
+  }
+
   async init(): Promise<void> {
     this.viewer = new Cesium.Viewer(this.container, {
       baseLayer: false,
@@ -211,18 +215,30 @@ export class CesiumMap extends BaseMap {
   }
 
   drawPoint(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'point', options)
+    return CesiumDraw.startDraw(this.viewer, 'point', this.wrapDrawOptions(options))
   }
 
   drawLine(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'polyline', options)
+    return CesiumDraw.startDraw(this.viewer, 'polyline', this.wrapDrawOptions(options))
   }
 
   drawPolygon(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'polygon', options)
+    return CesiumDraw.startDraw(this.viewer, 'polygon', this.wrapDrawOptions(options))
   }
 
   stopDraw(): void {
     CesiumDraw.stopDraw(this.viewer)
+  }
+
+  /** 包装 DrawOptions，绘制完成后自动 addFeature 并透传用户回调 */
+  private wrapDrawOptions(options?: DrawOptions): DrawOptions | undefined {
+    if (!options) return undefined
+    return {
+      ...options,
+      onComplete: (feature) => {
+        this.addFeature(feature)
+        options.onComplete?.(feature)
+      },
+    }
   }
 }

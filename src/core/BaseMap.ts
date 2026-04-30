@@ -9,8 +9,8 @@ import { LayerManager, OverlayManager } from '@/state'
  * 1. 核心服务方法（setCenter/flyTo/on/off 等）保持 abstract — 所有引擎必须实现
  * 2. 功能方法（loadTianditu/addFeature/clearFeatures）提供默认实现 —
  *    自动记录到 LayerManager/OverlayManager，引擎渲染部分由子类 override 补充
- * 3. restoreLayers / restoreFeatures 使用映射表分发 — 新增图层/要素类型时
- *    只需注册对应的恢复函数，不需要修改 restore 方法本身
+ * 3. restoreFeatures 直接复用 addFeature，restoreLayers 直接复用 loadTianditu —
+ *    恢复即重放，不需要额外注册恢复函数
  *
  * 新增方法时的步骤：
  * - 不需要引擎定制 → 只改 BaseMap（加默认实现）
@@ -22,17 +22,9 @@ export abstract class BaseMap implements IMap {
   protected layerMgr = new LayerManager()
   protected overlayMgr = new OverlayManager()
 
-  /** 图层恢复函数映射表：type → 恢复函数 */
-  private layerRestorers = new Map<string, (layer: LayerInfo) => void>()
-  /** 要素恢复函数映射表：type → 恢复函数 */
-  private featureRestorers = new Map<string, (feature: FeatureInfo) => void>()
-
-  constructor(config: MapConfig) {
+  protected constructor(config: MapConfig) {
     this.container = getElement(config.container)
     this.config = config
-
-    // 注册默认的恢复函数
-    this.registerLayerRestorer('tianditu', (layer) => this.loadTianditu(layer.key))
   }
 
   // ==================== IMap 核心服务方法（子类必须实现） ====================
@@ -147,48 +139,21 @@ export abstract class BaseMap implements IMap {
     return this.overlayMgr
   }
 
-  // ==================== 恢复机制（基于注册表，无需修改即可扩展） ====================
+  // ==================== 恢复机制（复用操作入口，恢复即重放） ====================
 
-  /**
-   * 注册图层恢复函数。
-   *
-   * 新增图层类型时，在子类构造函数中调用此方法注册恢复逻辑，
-   * 不需要修改 restoreLayers 方法本身。
-   *
-   * @example
-   * this.registerLayerRestorer('wms', (layer) => this.loadWMS(layer.url!, layer.layers!))
-   */
-  protected registerLayerRestorer(type: string, restorer: (layer: LayerInfo) => void): void {
-    this.layerRestorers.set(type, restorer)
-  }
-
-  /**
-   * 注册要素恢复函数。
-   *
-   * 新增要素类型时，在子类构造函数中调用此方法注册恢复逻辑，
-   * 不需要修改 restoreFeatures 方法本身。
-   */
-  protected registerFeatureRestorer(type: string, restorer: (feature: FeatureInfo) => void): void {
-    this.featureRestorers.set(type, restorer)
-  }
-
-  /** 恢复图层 — 通过映射表自动分发，支持任意扩展类型 */
+  /** 恢复图层 — 直接复用 loadTianditu，子类 override 负责实际渲染 */
   restoreLayers(layers: LayerInfo[]): void {
     for (const layer of layers) {
-      const restorer = this.layerRestorers.get(layer.type)
-      if (restorer) {
-        restorer(layer)
+      if (layer.type === 'tianditu') {
+        this.loadTianditu(layer.key)
       }
     }
   }
 
-  /** 恢复要素 — 通过映射表自动分发，支持任意扩展类型 */
+  /** 恢复要素 — 直接复用 addFeature，子类 override 负责实际渲染 */
   restoreFeatures(features: FeatureInfo[]): void {
     for (const feature of features) {
-      const restorer = this.featureRestorers.get(feature.type)
-      if (restorer) {
-        restorer(feature)
-      }
+      this.addFeature(feature)
     }
   }
 }

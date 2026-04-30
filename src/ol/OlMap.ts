@@ -16,6 +16,10 @@ import 'ol/ol.css'
 export class OlMap extends BaseMap {
   private map: Map | null = null
 
+  constructor(config: Parameters<typeof BaseMap.prototype.constructor>[0]) {
+    super(config)
+  }
+
   init(): void {
     this.map = new Map({
       target: this.container,
@@ -130,15 +134,27 @@ export class OlMap extends BaseMap {
   }
 
   drawPoint(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'point', options)
+    return OlDraw.startDraw(this.map, 'point', this.wrapDrawOptions(options))
   }
 
   drawLine(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'polyline', options)
+    return OlDraw.startDraw(this.map, 'polyline', this.wrapDrawOptions(options))
   }
 
   drawPolygon(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'polygon', options)
+    return OlDraw.startDraw(this.map, 'polygon', this.wrapDrawOptions(options))
+  }
+
+  /** 包装 DrawOptions，绘制完成后自动 addFeature 并透传用户回调 */
+  private wrapDrawOptions(options?: DrawOptions): DrawOptions | undefined {
+    if (!options) return undefined
+    return {
+      ...options,
+      onComplete: (feature) => {
+        this.addFeature(feature)
+        options.onComplete?.(feature)
+      },
+    }
   }
 
   stopDraw(): void {
