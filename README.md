@@ -6,7 +6,7 @@
 
 - **构建工具**: Vite
 - **语言**: TypeScript
-- **运行环境**: Node.js >= 18.0.0
+- **运行环境**: Node.js >= 20.19.0
 - **2D 引擎**: OpenLayers
 - **3D 引擎**: Cesium
 - **底图服务**: 天地图
@@ -58,7 +58,7 @@ src/
 
 ## 安装依赖
 
-**要求 Node.js >= 18.0.0**
+**要求 Node.js >= 20.19.0**
 
 ```bash
 npm install
