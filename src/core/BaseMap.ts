@@ -1,6 +1,6 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions } from '@/types'
 import { getElement } from '@/utils'
-import { LayerManager, OverlayManager } from '@/state'
+import { LayerManager, OverlayManager, PopupManager } from '@/state'
 
 /**
  * BaseMap — 二三维引擎的公共抽象基类。
@@ -23,6 +23,7 @@ export abstract class BaseMap implements IMap {
   protected config: MapConfig
   protected layerMgr = new LayerManager()
   protected overlayMgr = new OverlayManager()
+  protected popupMgr = new PopupManager()
 
   protected constructor(config: MapConfig) {
     this.container = getElement(config.container)
@@ -124,6 +125,44 @@ export abstract class BaseMap implements IMap {
     this.overlayMgr.clear()
   }
 
+  // ==================== 弹窗（默认实现：记录到管理器） ====================
+
+  /**
+   * 显示信息弹窗。
+   *
+   * 默认实现：记录到 PopupManager。子类如需实际渲染，请 override 并先调用 super。
+   */
+  showPopup(options: PopupOptions): void {
+    this.popupMgr.add(options)
+  }
+
+  /**
+   * 隐藏指定弹窗。
+   *
+   * 默认实现：从 PopupManager 移除。子类如需实际清除，请 override 并先调用 super。
+   */
+  hidePopup(id: string): void {
+    this.popupMgr.remove(id)
+  }
+
+  /**
+   * 清除所有弹窗。
+   *
+   * 默认实现：清空 PopupManager。子类如需实际清除，请 override 并先调用 super。
+   */
+  clearPopups(): void {
+    this.popupMgr.clear()
+  }
+
+  /**
+   * 恢复弹窗 — 遍历重放 showPopup，子类 showPopup 负责具体渲染。
+   */
+  restorePopups(popups: PopupOptions[]): void {
+    for (const popup of popups) {
+      this.showPopup(popup)
+    }
+  }
+
   // ==================== 交互式绘制（子类必须实现） ====================
 
   /**
@@ -169,6 +208,10 @@ export abstract class BaseMap implements IMap {
 
   getOverlayManager(): OverlayManager {
     return this.overlayMgr
+  }
+
+  getPopupManager(): PopupManager {
+    return this.popupMgr
   }
 
   // ==================== 恢复机制（复用操作入口，恢复即重放） ====================

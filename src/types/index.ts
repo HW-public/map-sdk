@@ -2,11 +2,13 @@ import type { MapEvent, MapState } from './map'
 export type { MapType, MapConfig, MapEvent, MapState } from './map'
 export type { LayerInfo, TiandituLayerInfo } from './layer'
 export type { FeatureType, FeatureInfo, DrawOptions } from './feature'
+export type { PopupOptions } from './popup'
 
 export interface SwitchToOptions {
   state?: boolean
   layers?: boolean | string[]
   features?: boolean
+  popups?: boolean
   events?: boolean
 }
 

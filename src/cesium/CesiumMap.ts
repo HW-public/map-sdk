@@ -1,8 +1,8 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
-import { CesiumDraw } from './operation'
+import { CesiumDraw, CesiumPopup } from './operation'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -70,6 +70,7 @@ export class CesiumMap extends BaseMap {
 
   destroy(): void {
     if (this.viewer) {
+      CesiumPopup.clear(this.viewer)
       this.viewer.destroy()
       this.viewer = null
     }
@@ -253,6 +254,21 @@ export class CesiumMap extends BaseMap {
 
   stopDraw(): void {
     CesiumDraw.stopDraw(this.viewer)
+  }
+
+  showPopup(options: PopupOptions): void {
+    super.showPopup(options)
+    CesiumPopup.show(this.viewer, options)
+  }
+
+  hidePopup(id: string): void {
+    super.hidePopup(id)
+    CesiumPopup.hide(this.viewer, id)
+  }
+
+  clearPopups(): void {
+    super.clearPopups()
+    CesiumPopup.clear(this.viewer)
   }
 
   /** 包装 DrawOptions，绘制完成后自动 addFeature 并透传用户回调 */

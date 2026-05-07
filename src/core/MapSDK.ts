@@ -145,6 +145,7 @@ export class MapSDK {
     const rawLayers = options?.layers
     const syncLayers = rawLayers !== false
     const layerFilter = Array.isArray(rawLayers) ? rawLayers : null
+    const syncPopups = options?.popups !== false
 
     // === 捕获旧实例的实时状态（兜底用）===
     // 主路径现在走 extent 同步，但 stateMgr 仍需最新数据作为 fallback，
@@ -159,6 +160,7 @@ export class MapSDK {
     // OverlayManager 记录了通过 addFeature 添加的所有绘制要素（点、线、面）。
     const layers = this.impl?.getLayerManager().getAll() ?? []
     const features = this.impl?.getOverlayManager().getAll() ?? []
+    const popups = this.impl?.getPopupManager().getAll() ?? []
     const oldExtent =
       this.impl instanceof OlMap
         ? this.impl.getViewportExtent()
@@ -211,6 +213,12 @@ export class MapSDK {
     // 遍历步骤 2 捕获的 FeatureInfo 列表，在新实例上重新绘制。
     if (syncFeatures) {
       this.impl!.restoreFeatures(features)
+    }
+
+    // === 恢复弹窗 ===
+    // 遍历步骤 2 捕获的 PopupOptions 列表，在新实例上重新显示。
+    if (syncPopups) {
+      this.impl!.restorePopups(popups)
     }
 
     // === 恢复跨切换持久化事件监听 ===

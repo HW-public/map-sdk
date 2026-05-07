@@ -1,10 +1,10 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
-import { OlDraw } from './operation'
+import { OlDraw, OlPopup } from './operation'
 import 'ol/ol.css'
 
 /**
@@ -59,6 +59,7 @@ export class OlMap extends BaseMap {
 
   destroy(): void {
     if (this.map) {
+      OlPopup.clear(this.map)
       this.map.setTarget(undefined)
       this.map.dispose()
       this.map = null
@@ -185,5 +186,20 @@ export class OlMap extends BaseMap {
 
   stopDraw(): void {
     OlDraw.stopDraw(this.map)
+  }
+
+  showPopup(options: PopupOptions): void {
+    super.showPopup(options)
+    OlPopup.show(this.map, options)
+  }
+
+  hidePopup(id: string): void {
+    super.hidePopup(id)
+    OlPopup.hide(this.map, id)
+  }
+
+  clearPopups(): void {
+    super.clearPopups()
+    OlPopup.clear(this.map)
   }
 }
