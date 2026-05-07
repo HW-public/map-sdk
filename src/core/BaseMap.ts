@@ -89,6 +89,15 @@ export abstract class BaseMap implements IMap {
   }
 
   /**
+   * 根据 ID 移除指定要素。
+   *
+   * 默认实现：从 OverlayManager 移除。子类如需实际清除，请 override 并先调用 super。
+   */
+  removeFeature(id: string): void {
+    this.overlayMgr.remove(id)
+  }
+
+  /**
    * 清除所有绘制要素。
    *
    * 默认实现：清空 OverlayManager。子类如需实际清除，请 override 并先调用 super。

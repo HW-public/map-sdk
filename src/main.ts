@@ -75,3 +75,15 @@ document.getElementById('btn-add-feature-polygon')!.addEventListener('click', ()
     })
     map.flyTo(104.0668, 30.5728, 12)
 })
+// 移除单个要素
+document.getElementById('btn-remove-feature')!.addEventListener('click', () => {
+    console.log('全部要素',map.getOverlayManager());
+    map.removeFeature('point-1')
+    map.removeFeature('line-1')
+    map.removeFeature('polygon-1')
+    console.log('剩余要素',map.getOverlayManager());
+})
+// 清除所有要素
+document.getElementById('btn-clear-features')!.addEventListener('click', () => {
+    map.clearFeatures()
+})

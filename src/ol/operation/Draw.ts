@@ -212,6 +212,24 @@ export class OlDraw {
   }
 
   /**
+   * 根据 ID 移除指定要素。
+   *
+   * @param map - OpenLayers Map 实例
+   * @param id - 要素 ID
+   */
+  static removeFeature(map: Map | null, id: string): void {
+    if (!map) return
+    const layer = map.getLayers().getArray().find(
+      (l) => (l as any).get('id') === LAYER_ID
+    ) as VectorLayer<VectorSource<Feature>> | undefined
+    if (!layer) return
+    const source = layer.getSource()
+    if (!source) return
+    const existing = source.getFeatureById(id)
+    if (existing) source.removeFeature(existing)
+  }
+
+  /**
    * 清除所有绘制要素。
    *
    * @param map - OpenLayers Map 实例

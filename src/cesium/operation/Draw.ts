@@ -371,6 +371,17 @@ export class CesiumDraw {
     }
 
     /**
+     * 根据 ID 移除指定实体。
+     *
+     * @param viewer - Cesium Viewer 实例
+     * @param id - 实体 ID
+     */
+    static removeFeature(viewer: Cesium.Viewer | null, id: string): void {
+        if (!viewer) return
+        viewer.entities.removeById(id)
+    }
+
+    /**
      * 清除所有绘制实体。
      *
      * @param viewer - Cesium Viewer 实例

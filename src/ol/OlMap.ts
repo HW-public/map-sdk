@@ -132,6 +132,11 @@ export class OlMap extends BaseMap {
     OlDraw.addFeature(this.map, feature)
   }
 
+  removeFeature(id: string): void {
+    super.removeFeature(id)
+    OlDraw.removeFeature(this.map, id)
+  }
+
   clearFeatures(): void {
     super.clearFeatures()
     OlDraw.clearFeatures(this.map)
