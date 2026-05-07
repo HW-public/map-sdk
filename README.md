@@ -107,6 +107,7 @@ npm run build
 | 要素 | 交互式绘制 | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw`，完成后自动入库 |
 | 要素 | 要素样式动态更新 | `updateFeature(id, style)` 不重新创建要素，2D/3D 实时生效 |
 | 覆盖物 | 信息弹窗（Popup） | `showPopup` / `hidePopup` / `clearPopups`，支持 HTML 内容，跨 2D/3D 切换自动恢复 |
+| 工具 | 坐标转换 | WGS84 / GCJ-02 / BD-09 互转，支持单点和批量转换 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -115,7 +116,6 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 坐标转换工具 | WGS84 / GCJ-02 / BD-09 互转，国内地图必备 | P1 |
 | 距离 / 面积计算 | 球面距离、多边形面积（支持不同单位） | P1 |
 | 地图截图 / 导出 | 导出当前视口为 PNG/JPG，含要素和底图 | P2 |
 
@@ -355,6 +355,38 @@ map.hidePopup('popup-1')
 map.clearPopups()
 ```
 
+### 9. 坐标转换
+
+SDK 内置 WGS84 / GCJ-02 / BD-09 三种坐标系互转工具，适用于国内多源地图数据融合场景。
+
+```typescript
+import { transform, transformCoords } from 'map-sdk'
+
+// 单点转换：WGS84 → GCJ-02（火星坐标系）
+const [lon, lat] = transform(104.0668, 30.5728, 'wgs84', 'gcj02')
+
+// 单点转换：GCJ-02 → WGS84
+const [wgsLon, wgsLat] = transform(104.0668, 30.5728, 'gcj02', 'wgs84')
+
+// 单点转换：WGS84 → BD-09（百度坐标系）
+const [bdLon, bdLat] = transform(104.0668, 30.5728, 'wgs84', 'bd09')
+
+// 批量转换
+const coords = [
+  [104.0668, 30.5728],
+  [116.3974, 39.9093],
+]
+const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
+```
+
+**坐标系说明：**
+
+| 坐标系 | 别名 | 使用方 |
+|--------|------|--------|
+| WGS84 | GPS 坐标 | 天地图、国际标准 |
+| GCJ-02 | 火星坐标 | 高德、腾讯、谷歌中国 |
+| BD-09 | 百度坐标 | 百度地图 |
+
 ## API 文档
 
 ### MapConfig
@@ -456,6 +488,15 @@ map.clearPopups()
 | layers | `boolean \| string[]` | `true` | 是否同步图层。`true` 全部同步，`string[]` 按类型过滤 |
 | features | `boolean` | `true` | 是否同步绘制要素 |
 | events | `boolean` | `true` | 是否同步跨切换事件监听 |
+
+### 坐标转换
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| transform | `lon, lat, from, to` | `[number, number]` | 单点坐标转换 |
+| transformCoords | `coords[], from, to` | `[number, number][]` | 批量坐标转换 |
+
+**CoordSystem 类型：** `'wgs84' | 'gcj02' | 'bd09'`
 
 ## 底图说明
 
