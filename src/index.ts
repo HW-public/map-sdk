@@ -1,4 +1,6 @@
 export { MapSDK, BaseMap } from '@/core'
 export { OlMap } from '@/ol'
 export { CesiumMap } from '@/cesium'
+export { transform, transformCoords } from '@/utils'
 export type { MapConfig, MapType, MapEvent, IMap } from '@/types'
+export type { CoordSystem } from '@/utils'

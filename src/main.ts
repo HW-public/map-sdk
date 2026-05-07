@@ -1,4 +1,5 @@
 import {BaseMap, MapSDK} from '@/core'
+import { transform } from '@/utils'
 
 const TIANDITU_KEY = 'dd92b4607cb0aadfc5e615028e99968e'
 
@@ -38,6 +39,17 @@ document.addEventListener('click', (e) => {
     }
 })
 
+// 坐标转换测试
+document.getElementById('btn-coord')!.addEventListener('click', () => {
+    const wgs = [104.0668, 30.5728] as [number, number]
+    const gcj = transform(wgs[0], wgs[1], 'wgs84', 'gcj02')
+    const bd = transform(wgs[0], wgs[1], 'wgs84', 'bd09')
+    map.showPopup({
+        id: 'popup-coord',
+        content: `<strong>坐标转换（成都市）</strong><br>WGS84: ${wgs[0].toFixed(4)}, ${wgs[1].toFixed(4)}<br>GCJ-02: ${gcj[0].toFixed(4)}, ${gcj[1].toFixed(4)}<br>BD-09: ${bd[0].toFixed(4)}, ${bd[1].toFixed(4)}`,
+        position: wgs,
+    })
+})
 // 飞行到指定位置
 document.getElementById('btn-fly')!.addEventListener('click', () => {
     const targets = [
