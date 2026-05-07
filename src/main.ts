@@ -10,7 +10,7 @@ const map: BaseMap = await sdk.init({
     center: [104.0668, 30.5728],
     zoom: 12
 })
-map.loadTianditu(TIANDITU_KEY)
+map.loadTianditu(TIANDITU_KEY, 'tianditu-1')
 // 飞行到指定位置
 document.getElementById('btn-fly')!.addEventListener('click', () => {
     const targets = [
@@ -86,4 +86,8 @@ document.getElementById('btn-remove-feature')!.addEventListener('click', () => {
 // 清除所有要素
 document.getElementById('btn-clear-features')!.addEventListener('click', () => {
     map.clearFeatures()
+})
+// 移除天地图图层
+document.getElementById('btn-remove-layer')!.addEventListener('click', () => {
+    map.removeLayer('tianditu-1')
 })

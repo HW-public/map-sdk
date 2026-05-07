@@ -39,9 +39,21 @@ export class OlMap extends BaseMap {
   protected loadLayer(layer: LayerInfo): void {
     switch (layer.type) {
       case 'tianditu':
-        addTianditu(this.map, { key: (layer as TiandituLayerInfo).key })
+        addTianditu(this.map, { key: (layer as TiandituLayerInfo).key, id: layer.id })
         break
       // 后续新增类型在这里加 case
+    }
+  }
+
+  removeLayer(id: string): void {
+    super.removeLayer(id)
+    if (!this.map) return
+    const layers = this.map.getLayers().getArray()
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const layer = layers[i]
+      if (layer.get('layerId') === id) {
+        this.map.removeLayer(layer)
+      }
     }
   }
 

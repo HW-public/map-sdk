@@ -71,12 +71,21 @@ export abstract class BaseMap implements IMap {
     this.loadLayer(layer)
   }
 
+  /**
+   * 根据 ID 移除指定图层。
+   *
+   * 默认实现：从 LayerManager 移除。子类如需实际清除，请 override 并先调用 super。
+   */
+  removeLayer(id: string): void {
+    this.layerMgr.remove(id)
+  }
+
   /** 子类实现：根据 layer.type 用 switch 分发到具体渲染模块 */
   protected abstract loadLayer(layer: LayerInfo): void
 
   /** 加载天地图底图 — 公共 API 糖衣，内部自动补 type */
-  loadTianditu(key: string): void {
-    this.addLayer({ type: 'tianditu',key } as TiandituLayerInfo)
+  loadTianditu(key: string, id: string): void {
+    this.addLayer({ type: 'tianditu', key, id } as TiandituLayerInfo)
   }
 
   /**

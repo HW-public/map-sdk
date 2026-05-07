@@ -51,9 +51,20 @@ export class CesiumMap extends BaseMap {
   protected loadLayer(layer: LayerInfo): void {
     switch (layer.type) {
       case 'tianditu':
-        addTianditu(this.viewer, { key: (layer as TiandituLayerInfo).key })
+        addTianditu(this.viewer, { key: (layer as TiandituLayerInfo).key, id: layer.id })
         break
       // 后续新增类型在这里加 case
+    }
+  }
+
+  removeLayer(id: string): void {
+    super.removeLayer(id)
+    if (!this.viewer) return
+    for (let i = this.viewer.imageryLayers.length - 1; i >= 0; i--) {
+      const layer = this.viewer.imageryLayers.get(i)
+      if ((layer as any).layerId === id) {
+        this.viewer.imageryLayers.remove(layer)
+      }
     }
   }
 

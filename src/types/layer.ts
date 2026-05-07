@@ -1,4 +1,5 @@
 export interface LayerInfo {
+  id?: string
   type?: string
   [key: string]: unknown
 }
