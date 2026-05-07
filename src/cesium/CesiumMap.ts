@@ -257,8 +257,16 @@ export class CesiumMap extends BaseMap {
   }
 
   showPopup(options: PopupOptions): void {
-    super.showPopup(options)
-    CesiumPopup.show(this.viewer, options)
+    const id = options.id ?? `sdk-popup-${Date.now()}`
+    const opts = { ...options, id }
+    super.showPopup(opts)
+    CesiumPopup.show(this.viewer, {
+      ...opts,
+      onClose: () => {
+        super.hidePopup(id)
+        options.onClose?.()
+      },
+    })
   }
 
   hidePopup(id: string): void {

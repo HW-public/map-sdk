@@ -189,8 +189,16 @@ export class OlMap extends BaseMap {
   }
 
   showPopup(options: PopupOptions): void {
-    super.showPopup(options)
-    OlPopup.show(this.map, options)
+    const id = options.id ?? `sdk-popup-${Date.now()}`
+    const opts = { ...options, id }
+    super.showPopup(opts)
+    OlPopup.show(this.map, {
+      ...opts,
+      onClose: () => {
+        super.hidePopup(id)
+        options.onClose?.()
+      },
+    })
   }
 
   hidePopup(id: string): void {
