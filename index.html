@@ -32,9 +32,39 @@
             color: #fff;
             cursor: pointer;
             font-size: 14px;
+            white-space: nowrap;
         }
         .toolbar button:hover { background: #c73e54; }
         .toolbar .info { margin-left: auto; font-size: 12px; opacity: 0.8; }
+
+        .btn-group { position: relative; }
+        .btn-group .group-label {
+            background: #3b82f6;
+        }
+        .btn-group .group-label:hover { background: #2563eb; }
+        .btn-group .group-label.active { background: #1d4ed8; }
+        .group-content {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            background: rgba(26, 26, 46, 0.9);
+            padding: 8px;
+            border-radius: 4px;
+            gap: 8px;
+            flex-direction: column;
+            min-width: 140px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .group-content.show { display: flex; }
+        .group-content button {
+            width: 100%;
+            text-align: left;
+            background: #4b5563;
+        }
+        .group-content button:hover { background: #374151; }
+
         .map-container {
             width: 100%;
             height: 100%;
@@ -48,7 +78,6 @@
             width: 100%;
             height: 100%;
         }
-        /* 地图右上角 2D/3D 切换按钮 */
         .map-toggle-btn {
             position: absolute;
             top: 8px;
@@ -72,19 +101,39 @@
 <body>
 <div id="app">
     <div class="toolbar">
-        <button id="btn-fly">飞行定位</button>
-        <button id="btn-draw-point">绘制点</button>
-        <button id="btn-draw-line">绘制线</button>
-        <button id="btn-draw-polygon">绘制面</button>
-        <button id="btn-add-feature-point">添加要素-点</button>
-        <button id="btn-add-feature-line">添加要素-线</button>
-        <button id="btn-add-feature-polygon">添加要素-面</button>
-        <button id="btn-update-feature">更新样式</button>
-        <button id="btn-remove-feature">移除要素</button>
-        <button id="btn-clear-features">清除所有要素</button>
-        <button id="btn-remove-layer">移除天地图层</button>
-        <button id="btn-show-popup">显示弹窗</button>
-        <button id="btn-clear-popups">清除弹窗</button>
+        <div class="btn-group">
+            <button class="group-label" data-group="map">地图操作</button>
+            <div class="group-content" data-group="map">
+                <button id="btn-fly">飞行定位</button>
+                <button id="btn-remove-layer">移除天地图层</button>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="group-label" data-group="draw">交互绘制</button>
+            <div class="group-content" data-group="draw">
+                <button id="btn-draw-point">绘制点</button>
+                <button id="btn-draw-line">绘制线</button>
+                <button id="btn-draw-polygon">绘制面</button>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="group-label" data-group="feature">要素管理</button>
+            <div class="group-content" data-group="feature">
+                <button id="btn-add-feature-point">添加要素-点</button>
+                <button id="btn-add-feature-line">添加要素-线</button>
+                <button id="btn-add-feature-polygon">添加要素-面</button>
+                <button id="btn-update-feature">更新样式</button>
+                <button id="btn-remove-feature">移除要素</button>
+                <button id="btn-clear-features">清除所有要素</button>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="group-label" data-group="popup">弹窗</button>
+            <div class="group-content" data-group="popup">
+                <button id="btn-show-popup">显示弹窗</button>
+                <button id="btn-clear-popups">清除弹窗</button>
+            </div>
+        </div>
         <span class="info">2D/3D地图 SDK</span>
     </div>
     <div class="map-container" id="map-container">
