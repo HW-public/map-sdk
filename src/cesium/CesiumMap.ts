@@ -229,6 +229,11 @@ export class CesiumMap extends BaseMap {
     CesiumDraw.removeFeature(this.viewer, id)
   }
 
+  updateFeature(id: string, style: Record<string, unknown>): void {
+    super.updateFeature(id, style)
+    CesiumDraw.updateFeature(this.viewer, id, style)
+  }
+
   clearFeatures(): void {
     super.clearFeatures()
     CesiumDraw.clearFeatures(this.viewer)

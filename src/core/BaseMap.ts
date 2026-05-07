@@ -107,6 +107,15 @@ export abstract class BaseMap implements IMap {
   }
 
   /**
+   * 根据 ID 更新指定要素的样式。
+   *
+   * 默认实现：更新 OverlayManager 中的样式记录。子类如需实际渲染，请 override 并先调用 super。
+   */
+  updateFeature(id: string, style: Record<string, unknown>): void {
+    this.overlayMgr.update(id, { style })
+  }
+
+  /**
    * 清除所有绘制要素。
    *
    * 默认实现：清空 OverlayManager。子类如需实际清除，请 override 并先调用 super。

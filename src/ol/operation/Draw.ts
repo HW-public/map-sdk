@@ -230,6 +230,25 @@ export class OlDraw {
   }
 
   /**
+   * 根据 ID 更新指定要素的样式。
+   *
+   * @param map - OpenLayers Map 实例
+   * @param id - 要素 ID
+   * @param style - 新样式
+   */
+  static updateFeature(map: Map | null, id: string, style: Record<string, unknown>): void {
+    if (!map) return
+    const layer = map.getLayers().getArray().find(
+      (l) => (l as any).get('id') === LAYER_ID
+    ) as VectorLayer<VectorSource<Feature>> | undefined
+    if (!layer) return
+    const source = layer.getSource()
+    if (!source) return
+    const feature = source.getFeatureById(id)
+    if (feature) feature.setStyle(resolveStyle(style))
+  }
+
+  /**
    * 清除所有绘制要素。
    *
    * @param map - OpenLayers Map 实例

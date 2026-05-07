@@ -382,6 +382,35 @@ export class CesiumDraw {
     }
 
     /**
+     * 根据 ID 更新指定实体的样式。
+     *
+     * @param viewer - Cesium Viewer 实例
+     * @param id - 实体 ID
+     * @param style - 新样式
+     */
+    static updateFeature(viewer: Cesium.Viewer | null, id: string, style: Record<string, unknown>): void {
+        if (!viewer) return
+        const entity = viewer.entities.getById(id)
+        if (!entity) return
+        const { fill, stroke, strokeWidth, pointColor, radius } = resolveStyle(style)
+        if (entity.point) {
+            entity.point.color = new Cesium.ConstantProperty(pointColor)
+            entity.point.pixelSize = new Cesium.ConstantProperty(radius)
+            entity.point.outlineColor = new Cesium.ConstantProperty(stroke)
+            entity.point.outlineWidth = new Cesium.ConstantProperty(1)
+        }
+        if (entity.polyline) {
+            entity.polyline.material = new Cesium.ColorMaterialProperty(stroke)
+            entity.polyline.width = new Cesium.ConstantProperty(strokeWidth)
+        }
+        if (entity.polygon) {
+            entity.polygon.material = new Cesium.ColorMaterialProperty(fill)
+            entity.polygon.outlineColor = new Cesium.ConstantProperty(stroke)
+            entity.polygon.outlineWidth = new Cesium.ConstantProperty(strokeWidth)
+        }
+    }
+
+    /**
      * 清除所有绘制实体。
      *
      * @param viewer - Cesium Viewer 实例

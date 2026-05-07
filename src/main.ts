@@ -75,6 +75,12 @@ document.getElementById('btn-add-feature-polygon')!.addEventListener('click', ()
     })
     map.flyTo(104.0668, 30.5728, 12)
 })
+// 更新要素样式
+document.getElementById('btn-update-feature')!.addEventListener('click', () => {
+    map.updateFeature('point-1', { pointColor: '#00ff00', radius: 8 })
+    map.updateFeature('line-1', { stroke: '#ff0000', strokeWidth: 5 })
+    map.updateFeature('polygon-1', { fill: 'rgba(255, 0, 0, 0.3)', stroke: '#ff0000', strokeWidth: 3 })
+})
 // 移除单个要素
 document.getElementById('btn-remove-feature')!.addEventListener('click', () => {
     console.log('全部要素',map.getOverlayManager());
