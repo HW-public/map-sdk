@@ -88,6 +88,72 @@ npm run build
 2. 注册账号并创建应用
 3. 获取 Key 后通过 `map.loadTianditu(key)` 加载底图
 
+## 功能清单
+
+### 已实现
+
+| 模块 | 功能 | 说明 |
+|------|------|------|
+| 核心 | 地图初始化 | 支持 `2d` / `3d` / `both` 三种模式 |
+| 核心 | 2D/3D 引擎切换 | `switchTo()` 自动同步视角、图层、要素、事件 |
+| 核心 | 视角控制 | setCenter / getCenter / setZoom / getZoom / flyTo / getState / setState |
+| 核心 | 事件系统 | click / dblclick / rightclick / mousemove，跨切换持久化 |
+| 图层 | 天地图底图 | `loadTianditu(key, id)` 加载影像底图 + 注记，必须指定 ID |
+| 图层 | 图层移除 | `removeLayer(id)` 按 ID 移除指定图层（含天地图多层同步） |
+| 图层 | 跨切换图层恢复 | 切换 2D/3D 时自动重放图层记录 |
+| 要素 | 要素添加 | `addFeature()` 支持点、线、面，同 ID 自动覆盖去重 |
+| 要素 | 要素移除 | `removeFeature(id)` 按 ID 移除指定要素 |
+| 要素 | 清除要素 | `clearFeatures()` 清空所有绘制要素 |
+| 要素 | 交互式绘制 | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw`，完成后自动入库 |
+| 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
+
+### 待实现
+
+#### 核心能力
+
+| 功能 | 说明 | 优先级 |
+|------|------|--------|
+| 坐标转换工具 | WGS84 / GCJ-02 / BD-09 互转，国内地图必备 | P1 |
+| 距离 / 面积计算 | 球面距离、多边形面积（支持不同单位） | P1 |
+| 地图截图 / 导出 | 导出当前视口为 PNG/JPG，含要素和底图 | P2 |
+
+#### 图层
+
+| 功能 | 说明 | 优先级 |
+|------|------|--------|
+| 图层显示 / 隐藏控制 | `setLayerVisible(id, boolean)`，不影响图层记录 | P1 |
+| 图层透明度设置 | `setLayerOpacity(id, 0~1)`，支持动态调节 | P1 |
+| WMS / WFS / WMTS 图层 | 标准 OGC 服务图层接入 | P2 |
+| GeoJSON 图层 | 加载本地 / 远程 GeoJSON 数据 | P2 |
+| 热力图 | 基于点密度的热力渲染 | P3 |
+| 更多底图 | 高德、OSM、必应、Mapbox 等 | P3 |
+
+#### 要素与覆盖物
+
+| 功能 | 说明 | 优先级 |
+|------|------|--------|
+| 信息窗口（Popup） | 点击要素弹出 HTML 内容，支持自定义模板 | P1 |
+| 要素样式动态更新 | `updateFeature(id, style)`，不重新创建要素 | P1 |
+| 点聚合（MarkerCluster） | 海量点自动聚合，支持缩放级别自适应 | P2 |
+| 文本 / 图标标注 | Marker + Label 组合标注 | P2 |
+| 轨迹回放 | 按时间轴回放移动轨迹，支持速度控制 | P3 |
+
+#### 交互与查询
+
+| 功能 | 说明 | 优先级 |
+|------|------|--------|
+| 点选查询 | 点击地图拾取要素，返回要素信息 | P1 |
+| 框选查询 | 拉框选择范围内的要素 | P2 |
+| 测量工具 | 测距（线段累加）、测面（多边形面积） | P2 |
+
+#### 分析与服务
+
+| 功能 | 说明 | 优先级 |
+|------|------|--------|
+| 路径规划 | 驾车 / 步行 / 骑行导航，对接第三方服务 | P3 |
+| 地理编码 / 逆地理编码 | 地址 ↔ 坐标互转，对接天地图 / 高德 API | P3 |
+| 缓冲区分析 | 以点/线/面为中心生成指定半径缓冲区 | P3 |
+
 ## 快速使用
 
 ### 1. 创建 2D 地图
@@ -103,7 +169,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY')
+map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
 ```
 
 ### 2. 创建 3D 地图
@@ -119,7 +185,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY')
+map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
 ```
 
 ### 3. 创建 2D/3D 切换地图（both 模式）
@@ -135,7 +201,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY')
+map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
 
 // 点击右上角按钮可在 2D 与 3D 之间切换
 // 切换时自动同步：视角、图层、绘制要素、事件监听
@@ -195,7 +261,17 @@ sdk.off('click', handler)
 sdk.destroy()
 ```
 
-### 6. 添加绘制要素
+### 6. 图层操作
+
+```typescript
+// 加载天地图底图（必须指定图层 ID）
+map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
+
+// 根据 ID 移除指定图层
+map.removeLayer('tdt-layer')
+```
+
+### 7. 添加绘制要素
 
 ```typescript
 map.addFeature({
@@ -227,11 +303,14 @@ map.addFeature({
   style: { fill: 'rgba(0, 170, 255, 0.2)', stroke: '#00aaff', strokeWidth: 2 },
 })
 
+// 根据 ID 移除指定要素
+map.removeFeature('beijing')
+
 // 清除所有绘制要素
 map.clearFeatures()
 ```
 
-### 7. 交互式绘制
+### 8. 交互式绘制
 
 ```typescript
 // 交互式绘制点（单击完成）
@@ -294,9 +373,11 @@ map.stopDraw()
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| loadTianditu | `key: string` | `void` | 加载天地图底图 |
+| loadTianditu | `key: string, id: string` | `void` | 加载天地图底图（需指定图层 ID） |
 | addFeature | `feature: FeatureInfo` | `void` | 添加绘制要素（同 id 会自动覆盖旧要素） |
+| removeFeature | `id: string` | `void` | 根据 ID 移除指定要素 |
 | clearFeatures | - | `void` | 清除所有绘制要素 |
+| removeLayer | `id: string` | `void` | 根据 ID 移除指定图层 |
 | drawPoint | `options?: DrawOptions` | `() => void` | 交互式绘制点，返回取消函数 |
 | drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
 | drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
@@ -442,10 +523,10 @@ if (current instanceof CesiumMap) {
 
 ## 注意事项
 
-1. **天地图 Key**：使用前必须申请天地图 Key，并通过 `map.loadTianditu(key)` 加载底图，否则底图无法加载。
+1. **天地图 Key**：使用前必须申请天地图 Key，并通过 `map.loadTianditu(key, id)` 加载底图，否则底图无法加载。加载时必须指定图层 ID，便于后续 `removeLayer` 管理。
 2. **体积优化**：Cesium 资源较大，建议按需加载或配置 CDN。
 3. **跨域**：天地图瓦片服务支持 CORS，已配置 `crossOrigin: 'anonymous'`。
 4. **事件持久化**：在 `both` 模式下，建议通过 `sdk.on()` / `sdk.off()` 注册事件，切换引擎后会自动重新绑定；直接调用 `map.on()` 的事件在切换后会失效。
 5. **Cesium off**：Cesium 引擎的 `off()` 当前为无操作（handler 未做跟踪回收），切换引擎时会通过销毁实例自动释放。OpenLayers 端的 `off()` 已正常实现。
-6. **同 id 去重**：`addFeature` 传入的 `feature.id` 若与已有要素重复，会自动覆盖旧要素（OverlayManager、2D 矢量层、3D entity 三层同步去重）。
+6. **同 id 去重**：`addFeature` 传入的 `feature.id` 若与已有要素重复，会自动覆盖旧要素（OverlayManager、2D 矢量层、3D entity 三层同步去重）。`loadTianditu` 传入的 `id` 若与已有图层重复，也会自动覆盖旧图层记录。
 7. **交互式绘制自动同步**：`drawPoint` / `drawLine` / `drawPolygon` 完成后，要素会自动进入 `OverlayManager`，2D/3D 切换时无需额外处理即可恢复。
