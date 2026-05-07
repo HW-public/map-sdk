@@ -108,6 +108,7 @@ npm run build
 | 要素 | 要素样式动态更新 | `updateFeature(id, style)` 不重新创建要素，2D/3D 实时生效 |
 | 覆盖物 | 信息弹窗（Popup） | `showPopup` / `hidePopup` / `clearPopups`，支持 HTML 内容，跨 2D/3D 切换自动恢复 |
 | 工具 | 坐标转换 | WGS84 / GCJ-02 / BD-09 互转，支持单点和批量转换 |
+| 工具 | 距离 / 面积计算 | 球面距离、折线长度、多边形面积，支持 m/km/miles/亩等单位 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -116,7 +117,6 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 距离 / 面积计算 | 球面距离、多边形面积（支持不同单位） | P1 |
 | 地图截图 / 导出 | 导出当前视口为 PNG/JPG，含要素和底图 | P2 |
 
 #### 图层
@@ -496,7 +496,61 @@ const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
 | transform | `lon, lat, from, to` | `[number, number]` | 单点坐标转换 |
 | transformCoords | `coords[], from, to` | `[number, number][]` | 批量坐标转换 |
 
+### 距离 / 面积计算
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| distance | `p1, p2, unit?` | `number` | 两点球面距离 |
+| lineLength | `coords[], unit?` | `number` | 折线总长度 |
+| polygonArea | `coords[], unit?` | `number` | 球面多边形面积 |
+
 **CoordSystem 类型：** `'wgs84' | 'gcj02' | 'bd09'`
+
+### 10. 距离 / 面积计算
+
+SDK 内置球面距离和面积计算工具，不依赖具体地图引擎，可直接用于测量分析。
+
+```typescript
+import { distance, lineLength, polygonArea } from 'map-sdk'
+
+// 两点距离（默认米）
+const d = distance([104.0668, 30.5728], [116.3974, 39.9093])
+
+// 两点距离（公里）
+const dKm = distance([104.0668, 30.5728], [116.3974, 39.9093], 'km')
+
+// 折线总长度
+const len = lineLength([
+  [104.0568, 30.5628],
+  [104.0668, 30.5728],
+  [104.0768, 30.5828],
+], 'km')
+
+// 多边形面积（默认平方米）
+const a = polygonArea([
+  [104.0568, 30.5728],
+  [104.0668, 30.5828],
+  [104.0768, 30.5728],
+  [104.0668, 30.5628],
+  [104.0568, 30.5728],
+])
+
+// 多边形面积（亩）
+const aMu = polygonArea(coords, 'mu')
+```
+
+**支持的单位：**
+
+| 类型 | 单位值 | 说明 |
+|------|--------|------|
+| 长度 | `'m'` | 米（默认） |
+| 长度 | `'km'` | 公里 |
+| 长度 | `'miles'` | 英里 |
+| 长度 | `'nmi'` | 海里 |
+| 面积 | `'m2'` | 平方米（默认） |
+| 面积 | `'km2'` | 平方公里 |
+| 面积 | `'hectare'` | 公顷 |
+| 面积 | `'mu'` | 亩 |
 
 ## 底图说明
 
