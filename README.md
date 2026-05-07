@@ -105,6 +105,8 @@ npm run build
 | 要素 | 要素移除 | `removeFeature(id)` 按 ID 移除指定要素 |
 | 要素 | 清除要素 | `clearFeatures()` 清空所有绘制要素 |
 | 要素 | 交互式绘制 | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw`，完成后自动入库 |
+| 要素 | 要素样式动态更新 | `updateFeature(id, style)` 不重新创建要素，2D/3D 实时生效 |
+| 覆盖物 | 信息弹窗（Popup） | `showPopup` / `hidePopup` / `clearPopups`，支持 HTML 内容，跨 2D/3D 切换自动恢复 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -132,8 +134,6 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 信息窗口（Popup） | 点击要素弹出 HTML 内容，支持自定义模板 | P1 |
-| 要素样式动态更新 | `updateFeature(id, style)`，不重新创建要素 | P1 |
 | 点聚合（MarkerCluster） | 海量点自动聚合，支持缩放级别自适应 | P2 |
 | 文本 / 图标标注 | Marker + Label 组合标注 | P2 |
 | 轨迹回放 | 按时间轴回放移动轨迹，支持速度控制 | P3 |
@@ -337,6 +337,24 @@ map.stopDraw()
 
 > **注意**：交互式绘制完成后，要素会自动进入 `OverlayManager`，切换 2D/3D 时会自动恢复，无需手动调用 `addFeature`。
 
+### 8. 信息弹窗
+
+```typescript
+// 显示弹窗
+map.showPopup({
+  id: 'popup-1',
+  content: '<strong>成都市</strong><br>经度: 104.0668<br>纬度: 30.5728',
+  position: [104.0668, 30.5728],
+  onClose: () => console.log('弹窗已关闭'),
+})
+
+// 隐藏指定弹窗
+map.hidePopup('popup-1')
+
+// 清除所有弹窗
+map.clearPopups()
+```
+
 ## API 文档
 
 ### MapConfig
@@ -382,6 +400,9 @@ map.stopDraw()
 | drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
 | drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
 | stopDraw | - | `void` | 终止当前交互式绘制 |
+| showPopup | `options: PopupOptions` | `void` | 显示信息弹窗 |
+| hidePopup | `id: string` | `void` | 隐藏指定弹窗 |
+| clearPopups | - | `void` | 清除所有弹窗 |
 
 ### MapEvent
 
@@ -412,6 +433,18 @@ map.stopDraw()
 | off | `event, callback` | `void` | 注销跨切换持久化事件 |
 | getMap | - | `BaseMap \| null` | 获取当前引擎实例 |
 | destroy | - | `void` | 销毁 SDK 及引擎 |
+
+### PopupOptions
+
+弹窗配置接口：
+
+| 属性 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| id | `string` | 否 | 弹窗唯一标识，不传则自动生成 |
+| content | `string \| HTMLElement` | 是 | 弹窗内容，支持 HTML 字符串或 DOM 元素 |
+| position | `[number, number]` | 是 | 弹窗锚点位置 [经度, 纬度] |
+| offset | `[number, number]` | 否 | 像素偏移 [x, y]，默认 `[0, -10]` |
+| onClose | `() => void` | 否 | 关闭按钮点击回调 |
 
 ### SwitchToOptions
 
