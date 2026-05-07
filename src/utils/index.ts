@@ -1,5 +1,7 @@
 export { transform, transformCoords, wgs84ToGcj02, gcj02ToWgs84, gcj02ToBd09, bd09ToGcj02, wgs84ToBd09, bd09ToWgs84 } from './coord'
 export type { CoordSystem } from './coord'
+export { distance, lineLength, polygonArea } from './measure'
+export type { LengthUnit, AreaUnit } from './measure'
 
 export function isString(value: unknown): value is string {
   return typeof value === 'string'
