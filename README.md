@@ -554,6 +554,7 @@ stopEdit()
 | layers | `boolean \| string[]` | `true` | 是否同步图层。`true` 全部同步，`string[]` 按类型过滤 |
 | features | `boolean` | `true` | 是否同步绘制要素 |
 | events | `boolean` | `true` | 是否同步跨切换事件监听 |
+| popups | `boolean` | `true` | 是否同步弹窗状态 |
 
 ### 坐标转换
 
