@@ -13,6 +13,27 @@ const map: BaseMap = await sdk.init({
 })
 map.loadTianditu(TIANDITU_KEY, 'tianditu-1')
 
+// 点选查询模式开关
+let isPickMode = false
+document.getElementById('btn-pick')!.addEventListener('click', () => {
+    isPickMode = !isPickMode
+    const btn = document.getElementById('btn-pick')!
+    btn.textContent = isPickMode ? '退出查询' : '点选查询'
+    btn.style.background = isPickMode ? '#10b981' : ''
+})
+sdk.on('click', (e) => {
+    if (!isPickMode) return
+    const results = map.pickAtPixel(e.pixel)
+    if (results.length > 0) {
+        const r = results[0]
+        map.showPopup({
+            id: 'popup-pick',
+            content: `<strong>拾取到要素</strong><br>ID: ${r.id ?? '无'}<br>类型: ${r.type}`,
+            position: e.coordinate,
+        })
+    }
+})
+
 // 分类按钮展开/收起
 document.querySelectorAll('.group-label').forEach((label) => {
     label.addEventListener('click', (e) => {
@@ -107,7 +128,7 @@ document.getElementById('btn-draw-line')!.addEventListener('click', () => {
 // 绘制面
 document.getElementById('btn-draw-polygon')!.addEventListener('click', () => {
     map.drawPolygon({
-        style: { fill: 'rgba(0, 170, 255, 0.2)', stroke: '#00aaff', strokeWidth: 2 },
+        style: { fill: 'rgba(255,0,213,0.46)', stroke: '#00aaff', strokeWidth: 2 },
         onComplete: (feature) => console.log('绘制面完成:', feature),
     })
 })

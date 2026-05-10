@@ -27,6 +27,15 @@ function resolveStyle(style: Record<string, unknown> | undefined) {
     return {fill, stroke, strokeWidth, pointColor, radius}
 }
 
+function buildProperties(type: FeatureType, coords: [number, number][], style: ReturnType<typeof resolveStyle>): Record<string, unknown> {
+    return {
+        [ENTITY_TAG]: true,
+        featureType: type,
+        featureCoords: coords,
+        featureStyle: style,
+    }
+}
+
 function pickLonLat(viewer: Cesium.Viewer, position: Cesium.Cartesian2): [number, number] | undefined {
     const cartesian = viewer.camera.pickEllipsoid(position, viewer.scene.globe.ellipsoid)
     if (!cartesian) return undefined
@@ -158,7 +167,7 @@ function finishDraw(viewer: Cesium.Viewer, draw: ActiveDraw, style: ReturnType<t
                     outlineWidth: 1,
                 },
                 position: Cesium.Cartesian3.fromDegrees(lon, lat),
-                properties: {[ENTITY_TAG]: true},
+                properties: buildProperties(type, coords, style),
             })
             break
         }
@@ -173,7 +182,7 @@ function finishDraw(viewer: Cesium.Viewer, draw: ActiveDraw, style: ReturnType<t
                     width: style.strokeWidth,
                     clampToGround: true,
                 },
-                properties: {[ENTITY_TAG]: true},
+                properties: buildProperties(type, coords, style),
             })
             break
         }
@@ -194,7 +203,7 @@ function finishDraw(viewer: Cesium.Viewer, draw: ActiveDraw, style: ReturnType<t
                     outlineColor: style.stroke,
                     outlineWidth: style.strokeWidth,
                 },
-                properties: {[ENTITY_TAG]: true},
+                properties: buildProperties(type, coords, style),
             })
             break
         }
@@ -326,7 +335,7 @@ export class CesiumDraw {
                         outlineColor: style.stroke,
                         outlineWidth: 1,
                     },
-                    properties: {[ENTITY_TAG]: true},
+                    properties: buildProperties('point', feature.coords, style),
                 })
                 break
             }
@@ -341,7 +350,7 @@ export class CesiumDraw {
                         material: style.stroke,
                         width: style.strokeWidth,
                     },
-                    properties: {[ENTITY_TAG]: true},
+                    properties: buildProperties('polyline', feature.coords, style),
                 })
                 break
             }
@@ -363,7 +372,7 @@ export class CesiumDraw {
                         outlineColor: style.stroke,
                         outlineWidth: style.strokeWidth,
                     },
-                    properties: {[ENTITY_TAG]: true},
+                    properties: buildProperties('polygon', feature.coords, style),
                 })
                 break
             }

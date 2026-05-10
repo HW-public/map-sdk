@@ -102,13 +102,9 @@ export class OlDraw {
     // 先停止已有的绘制交互
     OlDraw.stopDraw(map)
 
-    const layer = getOrCreateLayer(map)
-    const source = layer.getSource()!
-
     const olType = type === 'point' ? 'Point' : type === 'polyline' ? 'LineString' : 'Polygon'
 
     const draw = new Draw({
-      source,
       type: olType as 'Point' | 'LineString' | 'Polygon',
       style: resolveStyle(options?.style),
     })
@@ -120,10 +116,6 @@ export class OlDraw {
       // 移除交互
       map.removeInteraction(draw)
       activeDraws.delete(map)
-
-      // 给绘制完成的 feature 设置样式和 id
-      const feature = event.feature
-      feature.setStyle(resolveStyle(options?.style))
 
       options?.onComplete?.({
         type,
@@ -208,6 +200,10 @@ export class OlDraw {
     const f = new Feature(geom)
     f.setStyle(style)
     if (feature.id) f.setId(feature.id)
+    f.set('featureId', feature.id)
+    f.set('featureType', feature.type)
+    f.set('featureCoords', feature.coords)
+    f.set('featureStyle', feature.style)
     source.addFeature(f)
   }
 

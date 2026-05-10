@@ -1,5 +1,5 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
 import { CesiumDraw, CesiumPopup } from './operation'
@@ -276,6 +276,28 @@ export class CesiumMap extends BaseMap {
 
   stopDraw(): void {
     CesiumDraw.stopDraw(this.viewer)
+  }
+
+  pickAtPixel(pixel: [number, number]): PickResult[] {
+    if (!this.viewer) return []
+    const cartesian2 = new Cesium.Cartesian2(pixel[0], pixel[1])
+    const pickedObjects = this.viewer.scene.drillPick(cartesian2)
+    const results: PickResult[] = []
+    for (const picked of pickedObjects) {
+      if (picked.id && picked.id.properties) {
+        const props = picked.id.properties
+        const tag = props?.__sdkDraw?.getValue()
+        if (tag) {
+          results.push({
+            id: props?.featureId?.getValue(),
+            type: props?.featureType?.getValue(),
+            coords: props?.featureCoords?.getValue(),
+            style: props?.featureStyle?.getValue(),
+          })
+        }
+      }
+    }
+    return results
   }
 
   showPopup(options: PopupOptions): void {

@@ -111,6 +111,7 @@ npm run build
 | 覆盖物 | 信息弹窗（Popup） | `showPopup` / `hidePopup` / `clearPopups`，支持 HTML 内容，跨 2D/3D 切换自动恢复 |
 | 工具 | 坐标转换 | WGS84 / GCJ-02 / BD-09 互转，支持单点和批量转换 |
 | 工具 | 距离 / 面积计算 | 球面距离、折线长度、多边形面积，支持 m/km/miles/亩等单位 |
+| 交互 | 点选查询 | `pickAtPixel(pixel)` 点击地图拾取点/线/面要素，返回 ID/类型/坐标/样式 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -142,7 +143,6 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 点选查询 | 点击地图拾取要素，返回要素信息 | P1 |
 | 框选查询 | 拉框选择范围内的要素 | P2 |
 | 测量工具 | 测距（线段累加）、测面（多边形面积） | P2 |
 
@@ -395,6 +395,30 @@ const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
 | GCJ-02 | 火星坐标 | 高德、腾讯、谷歌中国 |
 | BD-09 | 百度坐标 | 百度地图 |
 
+### 10. 点选查询
+
+点击地图拾取点、线、面要素，返回要素的 ID、类型、坐标和样式信息。
+
+```typescript
+// 在 click 事件中调用 pickAtPixel
+sdk.on('click', (e) => {
+  const results = map.pickAtPixel(e.pixel)
+  if (results.length > 0) {
+    const feature = results[0]
+    console.log('拾取到:', feature.id, feature.type)
+  }
+})
+```
+
+**PickResult 结构：**
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| id | `string` | 要素 ID（可能为空） |
+| type | `'point' \| 'polyline' \| 'polygon'` | 要素类型 |
+| coords | `[number, number][]` | 地理坐标数组 |
+| style | `Record<string, unknown>` | 要素样式 |
+
 ## API 文档
 
 ### MapConfig
@@ -442,6 +466,7 @@ const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
 | drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
 | drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
 | stopDraw | - | `void` | 终止当前交互式绘制 |
+| pickAtPixel | `pixel: [number, number]` | `PickResult[]` | 根据屏幕坐标拾取要素 |
 | showPopup | `options: PopupOptions` | `void` | 显示信息弹窗 |
 | hidePopup | `id: string` | `void` | 隐藏指定弹窗 |
 | clearPopups | - | `void` | 清除所有弹窗 |

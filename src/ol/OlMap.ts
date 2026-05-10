@@ -1,7 +1,7 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
 import { OlDraw, OlPopup } from './operation'
@@ -206,6 +206,19 @@ export class OlMap extends BaseMap {
 
   stopDraw(): void {
     OlDraw.stopDraw(this.map)
+  }
+
+  pickAtPixel(pixel: [number, number]): PickResult[] {
+    if (!this.map) return []
+    const features = this.map.getFeaturesAtPixel(pixel)
+    console.log('features', features)
+    if (!features) return []
+    return features.map((f) => ({
+      id: f.get('featureId') as string | undefined,
+      type: f.get('featureType') as PickResult['type'],
+      coords: f.get('featureCoords') as [number, number][],
+      style: f.get('featureStyle') as Record<string, unknown> | undefined,
+    }))
   }
 
   showPopup(options: PopupOptions): void {

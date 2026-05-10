@@ -1,4 +1,4 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult } from '@/types'
 import { getElement } from '@/utils'
 import { LayerManager, OverlayManager, PopupManager } from '@/state'
 
@@ -221,6 +221,14 @@ export abstract class BaseMap implements IMap {
    * 停止当前进行中的交互式绘制。
    */
   abstract stopDraw(): void
+
+  /**
+   * 点选查询 — 根据屏幕像素坐标拾取要素。
+   *
+   * @param pixel - 屏幕像素坐标 [x, y]
+   * @returns 拾取到的要素列表
+   */
+  abstract pickAtPixel(pixel: [number, number]): PickResult[]
 
   // ==================== 管理器访问 ====================
 
