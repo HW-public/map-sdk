@@ -451,6 +451,30 @@ export class CesiumMap extends BaseMap {
       snapMode = null
     }
 
+    const onPointerDown = (e: PointerEvent) => {
+      const hasMod = e.altKey || e.getModifierState('Alt') || e.shiftKey || e.getModifierState('Shift')
+      if (hasMod && snapMode === 'vertex') {
+        if (type === 'point') return
+        const minCount = type === 'polygon' ? 3 : 2
+        if (currentVertexCount <= minCount) return
+        coords.splice(snapIndex, 1)
+        if (isClosedPolygon) {
+          coords[coords.length - 1] = [coords[0][0], coords[0][1]]
+        }
+        CesiumDraw.updateEntityCoords(this.viewer, entity, coords)
+        if (type === 'polygon' && isClosedPolygon) {
+          currentVertexCount = coords.length - 1
+        } else {
+          currentVertexCount = coords.length
+        }
+        hoverHandle.point!.show = new Cesium.ConstantProperty(false)
+        snapMode = null
+        e.stopImmediatePropagation()
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+
     handler.setInputAction((_movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
       if (snapMode === 'vertex') {
         isDragging = true
@@ -511,12 +535,34 @@ export class CesiumMap extends BaseMap {
 
       dragIndex = -1
     }, Cesium.ScreenSpaceEventType.LEFT_UP)
-    // 1.销毁事件处理器
-    // 2.移除临时entity
-    // 3.恢复相机控制
+
+    // 右键点击已吸附的顶点进行删除
+    handler.setInputAction((_movement: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+      if (snapMode !== 'vertex') return
+      if (type === 'point') return
+      const minCount = type === 'polygon' ? 3 : 2
+      if (currentVertexCount <= minCount) return
+
+      coords.splice(snapIndex, 1)
+      if (isClosedPolygon) {
+        coords[coords.length - 1] = [coords[0][0], coords[0][1]]
+      }
+      CesiumDraw.updateEntityCoords(this.viewer, entity, coords)
+
+      if (type === 'polygon' && isClosedPolygon) {
+        currentVertexCount = coords.length - 1
+      } else {
+        currentVertexCount = coords.length
+      }
+
+      hoverHandle.point!.show = new Cesium.ConstantProperty(false)
+      snapMode = null
+    }, Cesium.ScreenSpaceEventType.RIGHT_CLICK)
+
     return () => {
       handler.destroy()
       this.viewer!.entities.remove(hoverHandle)
+      window.removeEventListener('pointerdown', onPointerDown, true)
       if (this.viewer) {
         this.viewer.scene.screenSpaceCameraController.enableInputs = savedEnableInputs
       }
