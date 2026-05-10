@@ -68,6 +68,28 @@ export class CesiumMap extends BaseMap {
     }
   }
 
+  setLayerVisible(id: string, visible: boolean): void {
+    super.setLayerVisible(id, visible)
+    if (!this.viewer) return
+    for (let i = 0; i < this.viewer.imageryLayers.length; i++) {
+      const layer = this.viewer.imageryLayers.get(i)
+      if ((layer as any).layerId === id) {
+        layer.show = visible
+      }
+    }
+  }
+
+  setLayerOpacity(id: string, opacity: number): void {
+    super.setLayerOpacity(id, opacity)
+    if (!this.viewer) return
+    for (let i = 0; i < this.viewer.imageryLayers.length; i++) {
+      const layer = this.viewer.imageryLayers.get(i)
+      if ((layer as any).layerId === id) {
+        layer.alpha = opacity
+      }
+    }
+  }
+
   destroy(): void {
     if (this.viewer) {
       CesiumPopup.clear(this.viewer)

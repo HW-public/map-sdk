@@ -100,7 +100,9 @@ npm run build
 | 核心 | 事件系统 | click / dblclick / rightclick / mousemove，跨切换持久化 |
 | 图层 | 天地图底图 | `loadTianditu(key, id)` 加载影像底图 + 注记，必须指定 ID |
 | 图层 | 图层移除 | `removeLayer(id)` 按 ID 移除指定图层（含天地图多层同步） |
-| 图层 | 跨切换图层恢复 | 切换 2D/3D 时自动重放图层记录 |
+| 图层 | 图层显示/隐藏控制 | `setLayerVisible(id, boolean)` 按 ID 控制图层可见性 |
+| 图层 | 图层透明度设置 | `setLayerOpacity(id, 0~1)` 按 ID 动态调节透明度 |
+| 图层 | 跨切换图层恢复 | 切换 2D/3D 时自动重放图层记录，并恢复可见性/透明度状态 |
 | 要素 | 要素添加 | `addFeature()` 支持点、线、面，同 ID 自动覆盖去重 |
 | 要素 | 要素移除 | `removeFeature(id)` 按 ID 移除指定要素 |
 | 要素 | 清除要素 | `clearFeatures()` 清空所有绘制要素 |
@@ -123,8 +125,6 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 图层显示 / 隐藏控制 | `setLayerVisible(id, boolean)`，不影响图层记录 | P1 |
-| 图层透明度设置 | `setLayerOpacity(id, 0~1)`，支持动态调节 | P1 |
 | WMS / WFS / WMTS 图层 | 标准 OGC 服务图层接入 | P2 |
 | GeoJSON 图层 | 加载本地 / 远程 GeoJSON 数据 | P2 |
 | 热力图 | 基于点密度的热力渲染 | P3 |
@@ -269,6 +269,14 @@ map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
 
 // 根据 ID 移除指定图层
 map.removeLayer('tdt-layer')
+
+// 控制图层可见性
+map.setLayerVisible('tdt-layer', false) // 隐藏
+map.setLayerVisible('tdt-layer', true)  // 显示
+
+// 控制图层透明度（0 ~ 1）
+map.setLayerOpacity('tdt-layer', 0.5) // 半透明
+map.setLayerOpacity('tdt-layer', 1)   // 完全 opaque
 ```
 
 ### 7. 添加绘制要素
@@ -428,6 +436,8 @@ const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
 | removeFeature | `id: string` | `void` | 根据 ID 移除指定要素 |
 | clearFeatures | - | `void` | 清除所有绘制要素 |
 | removeLayer | `id: string` | `void` | 根据 ID 移除指定图层 |
+| setLayerVisible | `id: string, visible: boolean` | `void` | 设置图层可见性 |
+| setLayerOpacity | `id: string, opacity: number` | `void` | 设置图层透明度（0~1） |
 | drawPoint | `options?: DrawOptions` | `() => void` | 交互式绘制点，返回取消函数 |
 | drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
 | drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |

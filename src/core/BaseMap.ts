@@ -70,6 +70,10 @@ export abstract class BaseMap implements IMap {
   private addLayer(layer: LayerInfo): void {
     this.layerMgr.add(layer)
     this.loadLayer(layer)
+    if (layer.id) {
+      if (layer.visible !== undefined) this.setLayerVisible(layer.id, layer.visible)
+      if (layer.opacity !== undefined) this.setLayerOpacity(layer.id, layer.opacity)
+    }
   }
 
   /**
@@ -79,6 +83,24 @@ export abstract class BaseMap implements IMap {
    */
   removeLayer(id: string): void {
     this.layerMgr.remove(id)
+  }
+
+  /**
+   * 设置图层可见性。
+   *
+   * 默认实现：更新 LayerManager 状态。子类如需实际操作引擎，请 override 并先调用 super。
+   */
+  setLayerVisible(id: string, visible: boolean): void {
+    this.layerMgr.setVisible(id, visible)
+  }
+
+  /**
+   * 设置图层透明度。
+   *
+   * 默认实现：更新 LayerManager 状态。子类如需实际操作引擎，请 override 并先调用 super。
+   */
+  setLayerOpacity(id: string, opacity: number): void {
+    this.layerMgr.setOpacity(id, opacity)
   }
 
   /** 子类实现：根据 layer.type 用 switch 分发到具体渲染模块 */

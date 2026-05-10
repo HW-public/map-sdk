@@ -57,6 +57,26 @@ export class OlMap extends BaseMap {
     }
   }
 
+  setLayerVisible(id: string, visible: boolean): void {
+    super.setLayerVisible(id, visible)
+    if (!this.map) return
+    this.map.getLayers().forEach((layer) => {
+      if (layer.get('layerId') === id) {
+        layer.setVisible(visible)
+      }
+    })
+  }
+
+  setLayerOpacity(id: string, opacity: number): void {
+    super.setLayerOpacity(id, opacity)
+    if (!this.map) return
+    this.map.getLayers().forEach((layer) => {
+      if (layer.get('layerId') === id) {
+        layer.setOpacity(opacity)
+      }
+    })
+  }
+
   destroy(): void {
     if (this.map) {
       OlPopup.clear(this.map)
