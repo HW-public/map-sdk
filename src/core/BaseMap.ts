@@ -1,4 +1,4 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult, EditOptions } from '@/types'
 import { getElement } from '@/utils'
 import { LayerManager, OverlayManager, PopupManager } from '@/state'
 
@@ -229,6 +229,15 @@ export abstract class BaseMap implements IMap {
    * @returns 拾取到的要素列表
    */
   abstract pickAtPixel(pixel: [number, number]): PickResult[]
+
+  /**
+   * 交互式编辑要素 — 拖拽顶点调整形状。
+   *
+   * @param id - 要素 ID
+   * @param options - 编辑完成回调
+   * @returns 取消函数，调用后退出编辑模式
+   */
+  abstract editFeature(id: string, options?: EditOptions): () => void
 
   // ==================== 管理器访问 ====================
 

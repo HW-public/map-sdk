@@ -168,6 +168,25 @@ document.getElementById('btn-update-feature')!.addEventListener('click', () => {
     map.updateFeature('line-1', { stroke: '#ff0000', strokeWidth: 5 })
     map.updateFeature('polygon-1', { fill: 'rgba(255, 0, 0, 0.3)', stroke: '#ff0000', strokeWidth: 3 })
 })
+// 编辑面要素
+let stopEdit: (() => void) | null = null
+document.getElementById('btn-edit-feature')!.addEventListener('click', () => {
+    const btn = document.getElementById('btn-edit-feature')!
+    if (stopEdit) {
+        stopEdit()
+        stopEdit = null
+        btn.textContent = '编辑要素'
+        btn.style.background = ''
+        return
+    }
+    btn.textContent = '结束编辑'
+    btn.style.background = '#10b981'
+    stopEdit = map.editFeature('polygon-1', {
+        onComplete: (feature) => {
+            console.log('编辑完成:', feature)
+        },
+    })
+})
 // 移除单个要素
 document.getElementById('btn-remove-feature')!.addEventListener('click', () => {
     console.log('全部要素',map.getOverlayManager());

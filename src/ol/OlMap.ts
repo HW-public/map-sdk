@@ -1,7 +1,9 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult } from '@/types'
+import { Collection } from 'ol'
+import { Modify } from 'ol/interaction'
+import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult, EditOptions } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import { addTianditu } from './layers/addTianditu'
 import { OlDraw, OlPopup } from './operation'
@@ -206,6 +208,61 @@ export class OlMap extends BaseMap {
 
   stopDraw(): void {
     OlDraw.stopDraw(this.map)
+  }
+
+  editFeature(id: string, options?: EditOptions): () => void {
+    if (!this.map) return () => {}
+
+    const layer = this.map.getLayers().getArray().find(
+      (l) => (l as any).get('id') === 'sdk-draw-layer'
+    ) as import('ol/layer').Vector<import('ol/source').Vector<import('ol').Feature>> | undefined
+    if (!layer) return () => {}
+
+    const source = layer.getSource()
+    if (!source) return () => {}
+
+    const feature = source.getFeatureById(id)
+    if (!feature) return () => {}
+
+    const modify = new Modify({
+      features: new Collection([feature]),
+    })
+
+    modify.on('modifyend', () => {
+      const geom = feature.getGeometry()
+      const type = feature.get('featureType') as import('@/types').FeatureType
+      const style = feature.get('featureStyle') as Record<string, unknown> | undefined
+
+      let coords: [number, number][] = []
+      switch (type) {
+        case 'point': {
+          const c = (geom as import('ol/geom').Point).getCoordinates()
+          coords = [toLonLat(c) as [number, number]]
+          break
+        }
+        case 'polyline': {
+          coords = (geom as import('ol/geom').LineString).getCoordinates().map(
+            (c) => toLonLat(c) as [number, number]
+          )
+          break
+        }
+        case 'polygon': {
+          coords = (geom as import('ol/geom').Polygon).getCoordinates()[0].map(
+            (c) => toLonLat(c) as [number, number]
+          )
+          break
+        }
+      }
+
+      this.overlayMgr.update(id, { coords })
+      options?.onComplete?.({ id, type, coords, style })
+    })
+
+    this.map.addInteraction(modify)
+
+    return () => {
+      this.map?.removeInteraction(modify)
+    }
   }
 
   pickAtPixel(pixel: [number, number]): PickResult[] {

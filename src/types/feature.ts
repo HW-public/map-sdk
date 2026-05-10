@@ -21,3 +21,8 @@ export interface DrawOptions {
   onComplete?: (feature: FeatureInfo) => void
   onChange?: (coords: [number, number][]) => void
 }
+
+/** 要素编辑选项 */
+export interface EditOptions {
+  onComplete?: (feature: FeatureInfo) => void
+}

@@ -112,6 +112,7 @@ npm run build
 | 工具 | 坐标转换 | WGS84 / GCJ-02 / BD-09 互转，支持单点和批量转换 |
 | 工具 | 距离 / 面积计算 | 球面距离、折线长度、多边形面积，支持 m/km/miles/亩等单位 |
 | 交互 | 点选查询 | `pickAtPixel(pixel)` 点击地图拾取点/线/面要素，返回 ID/类型/坐标/样式 |
+| 交互 | 要素编辑 | `editFeature(id)` 拖拽顶点调整点/线/面形状，返回取消函数 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -419,6 +420,25 @@ sdk.on('click', (e) => {
 | coords | `[number, number][]` | 地理坐标数组 |
 | style | `Record<string, unknown>` | 要素样式 |
 
+### 11. 要素编辑
+
+启动交互式编辑模式，拖拽要素的顶点来调整形状。编辑完成后自动更新 `OverlayManager` 中的坐标记录。
+
+```typescript
+// 启动编辑
+const stopEdit = map.editFeature('polygon-1', {
+  onComplete: (feature) => console.log('编辑完成:', feature),
+})
+
+// 退出编辑模式
+stopEdit()
+```
+
+> **注意**：
+> - 2D（OpenLayers）使用 `Modify` 交互，可直接拖拽顶点
+> - 3D（Cesium）在顶点处显示黄色手柄，点击并拖拽手柄来调整位置
+> - 编辑完成后，2D/3D 切换时坐标会自动恢复
+
 ## API 文档
 
 ### MapConfig
@@ -467,6 +487,7 @@ sdk.on('click', (e) => {
 | drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
 | stopDraw | - | `void` | 终止当前交互式绘制 |
 | pickAtPixel | `pixel: [number, number]` | `PickResult[]` | 根据屏幕坐标拾取要素 |
+| editFeature | `id: string, options?: EditOptions` | `() => void` | 交互式编辑要素，返回取消函数 |
 | showPopup | `options: PopupOptions` | `void` | 显示信息弹窗 |
 | hidePopup | `id: string` | `void` | 隐藏指定弹窗 |
 | clearPopups | - | `void` | 清除所有弹窗 |

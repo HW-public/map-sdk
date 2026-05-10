@@ -420,6 +420,40 @@ export class CesiumDraw {
     }
 
     /**
+     * 更新实体坐标（编辑时使用）。
+     *
+     * @param viewer - Cesium Viewer 实例
+     * @param entity - 目标实体
+     * @param coords - 新坐标数组
+     */
+    static updateEntityCoords(viewer: Cesium.Viewer | null, entity: Cesium.Entity, coords: [number, number][]): void {
+        if (!viewer || !entity || !coords.length) return
+
+        if (entity.position) {
+            // point
+            entity.position = new Cesium.ConstantPositionProperty(
+                Cesium.Cartesian3.fromDegrees(coords[0][0], coords[0][1])
+            )
+        } else if (entity.polyline) {
+            // polyline
+            entity.polyline.positions = new Cesium.ConstantProperty(
+                Cesium.Cartesian3.fromDegreesArray(coords.flatMap(([lon, lat]) => [lon, lat]))
+            )
+        } else if (entity.polygon) {
+            // polygon
+            const ring = [...coords]
+            if (ring.length > 2 && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) {
+                ring.push(ring[0])
+            }
+            entity.polygon.hierarchy = new Cesium.ConstantProperty(
+                new Cesium.PolygonHierarchy(
+                    Cesium.Cartesian3.fromDegreesArray(ring.flatMap(([lon, lat]) => [lon, lat]))
+                )
+            )
+        }
+    }
+
+    /**
      * 清除所有绘制实体。
      *
      * @param viewer - Cesium Viewer 实例

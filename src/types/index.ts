@@ -1,7 +1,7 @@
 import type { MapEvent, MapState } from './map'
 export type { MapType, MapConfig, MapEvent, MapState } from './map'
 export type { LayerInfo, TiandituLayerInfo } from './layer'
-export type { FeatureType, FeatureInfo, DrawOptions, PickResult } from './feature'
+export type { FeatureType, FeatureInfo, DrawOptions, PickResult, EditOptions } from './feature'
 export type { PopupOptions } from './popup'
 
 export interface SwitchToOptions {
