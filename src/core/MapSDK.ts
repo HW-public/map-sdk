@@ -2,7 +2,7 @@ import type { MapConfig, MapEvent, SwitchToOptions } from '@/types'
 import { BaseMap } from './BaseMap'
 import { OlMap } from '@/ol'
 import { CesiumMap } from '@/cesium'
-import { MapToggleBtn } from '@/ui'
+import { ToggleButtonPlugin } from '@/ui'
 import { StateManager } from '@/state'
 import { createForwardingProxy } from '@/utils'
 
@@ -11,7 +11,7 @@ import { createForwardingProxy } from '@/utils'
  *
  * 职责范围：
  * 1. 根据配置创建 2D（OpenLayers）或 3D（Cesium）引擎实例
- * 2. both 模式下自动挂载 2D/3D 切换按钮（MapToggleBtn）
+ * 2. both 模式下自动安装 ToggleButtonPlugin（2D/3D 切换按钮）
  * 3. 切换引擎时自动同步：地图状态 → 图层 → 绘制要素 → 跨切换事件监听
  * 4. 维护权威状态（StateManager），保证切换后视角不丢失
  * 5. 提供跨切换持久化的事件注册能力（on/off）
@@ -19,7 +19,7 @@ import { createForwardingProxy } from '@/utils'
  * 不做的事：
  * - 不直接提供 flyTo、setCenter、loadTianditu 等地图操作方法
  * - 不持有引擎实例引用以外的任何地图状态
- * - 不处理 DOM 细节（由 MapToggleBtn 处理）
+ * - 不处理 DOM 细节（由 ToggleButtonPlugin 等 UI 插件处理）
  *
  * ==================== 使用文档 ====================
  *
@@ -57,7 +57,7 @@ import { createForwardingProxy } from '@/utils'
  */
 export class MapSDK {
   private impl: BaseMap | null = null
-  private switcher: MapToggleBtn | null = null
+  private togglePlugin: ToggleButtonPlugin | null = null
   private currentConfig: MapConfig | null = null
   private bothMode: boolean = false
   private stateMgr = new StateManager()
@@ -71,6 +71,9 @@ export class MapSDK {
       throw new Error(`Unsupported map type: ${config.type}`)
     }
     await this.impl.init()
+    // 在默认插件已安装、即将进入 use(自定义插件) 阶段前打标，
+    // 让 toggle 等 UI 插件在 install 时能据此决定是否渲染。
+    this.impl.markBothMode(this.bothMode)
     return this.impl
   }
 
@@ -104,6 +107,12 @@ export class MapSDK {
 
     this.bothMode = true
     await this.switchTo('2d')
+    // both 模式下首次进入时安装切换按钮插件；后续切换由 switchTo 的迁移循环复用同一实例。
+    this.togglePlugin = new ToggleButtonPlugin({
+      onToggle: (t) => this.switchTo(t),
+      initialType: '2d',
+    })
+    this.impl!.use(this.togglePlugin)
     return createForwardingProxy<BaseMap>(() => this.getMap()) as OlMap | CesiumMap;
   }
 
@@ -249,12 +258,10 @@ export class MapSDK {
     // === 更新切换按钮 ===
     // both 模式下右上角有切换按钮，需要更新按钮文字
     //（当前为 2D 时显示 "3D"，当前为 3D 时显示 "2D"）。
-    // 首次切换时若按钮不存在，自动创建并挂载到容器上。
+    // 按钮 DOM 由 ToggleButtonPlugin 在 init('both') 时挂载并随迁移循环延续；
+    // 这里只触发新实例上的 updateToggleButton 方法以同步文字。
     if (this.bothMode) {
-      if (!this.switcher) {
-        this.switcher = new MapToggleBtn(this.currentConfig.container, (t) => this.switchTo(t))
-      }
-      this.switcher.updateText(type)
+      ;(this.impl as any).updateToggleButton?.(type)
     }
 
     // === 返回代理对象（始终指向当前活跃实例） ===
@@ -295,8 +302,10 @@ export class MapSDK {
     this.bothMode = false
     this.currentConfig = null
     this.stateMgr.reset()
-    this.switcher?.destroy()
-    this.switcher = null
+    if (this.impl && this.togglePlugin) {
+      this.impl.unuse('toggle-button')
+    }
+    this.togglePlugin = null
     if (this.impl) {
       this.impl.destroy()
       this.impl = null

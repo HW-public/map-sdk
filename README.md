@@ -82,7 +82,8 @@ src/
 │   ├── layer.ts        # 图层控制示例
 │   └── popup.ts        # 弹窗示例
 ├── ui/
-│   └── MapToggleBtn.ts # 2D/3D 切换按钮
+│   ├── ToggleButtonPlugin.ts # 2D/3D 切换按钮插件（both 模式自动安装）
+│   └── CustomTogglePlugin.ts # 备选切换按钮：胶囊滑块 + 玻璃质感
 ├── index.ts            # SDK 对外导出
 └── main.ts             # 示例入口，聚合 examples/ 各模块
 ```
@@ -584,9 +585,17 @@ stopArea()
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| use | `plugin: MapPlugin` | `BaseMap` | 注册插件，同名会先卸载旧实例 |
+| use | `plugin: MapPlugin` | `BaseMap` | 注册插件，同名会先卸载旧实例；`name='toggle-button'` 在单引擎模式下自动跳过 |
 | unuse | `name: string` | `BaseMap` | 卸载指定插件 |
 | getPlugins | - | `MapPlugin[]` | 获取已安装的所有插件 |
+
+**5. 实例查询 / 标记**
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| getContainer | - | `HTMLElement` | 获取地图所挂载的 DOM 容器，供插件挂载 UI 元素 |
+| isBothMode | - | `boolean` | 当前实例是否由 MapSDK 在 `both` 模式下创建 |
+| markBothMode | `value: boolean` | `void` | 由 MapSDK 内部调用，标记 both 模式；用户代码无需调用 |
 
 ### MapEvent
 
@@ -748,6 +757,15 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 | Measure | `OlMeasurePlugin` | `CesiumMeasurePlugin` | `measureDistance` / `measureArea` |
 | Popup | `OlPopupPlugin` | `CesiumPopupPlugin` | `showPopup` / `hidePopup` / `clearPopups` |
 
+**MapSDK 在 `both` 模式下额外安装的 UI 插件**
+
+| 插件 | 实现 | 触发条件 | 说明 |
+|------|------|----------|------|
+| ToggleButton | `ToggleButtonPlugin` | `init({ type: 'both' })` | 在容器右上角挂载 2D/3D 切换按钮，跨引擎切换持久存在；如不需要可调用 `map.unuse('toggle-button')` |
+| ToggleButton（备选） | `CustomTogglePlugin` | 用户手动 `use` | 内置的胶囊滑块样式切换按钮，玻璃质感、激活态滑动渐变；同名替换默认实现 |
+
+> `name='toggle-button'` 是 SDK 与 MapSDK 之间的约定名：单引擎模式（`init({type:'2d'\|'3d'})`）下 `BaseMap.use()` 会自动跳过同名插件的安装，避免渲染出"按了之后状态不一致"的假按钮。
+
 **按需卸载/重新安装**
 
 ```typescript
@@ -788,6 +806,47 @@ class MyPlugin implements MapPlugin {
 
 map.use(new MyPlugin())
 ;(map as any).myMethod() // → "Hello from my plugin"
+```
+
+**编写自定义切换按钮插件**
+
+如需替换默认切换按钮（如改用自家 UI 库、Vue/React 组件、不同视觉风格），写一个普通 MapPlugin 即可，遵守三条契约：
+
+```typescript
+import type { MapPlugin, BaseMap } from 'map-sdk'
+
+type ToggleType = '2d' | '3d'
+
+class MyToggleButtonPlugin implements MapPlugin {
+  readonly name = 'toggle-button'                 // ① 用此 name —— SDK 自动同名替换默认实现，
+                                                  //   单引擎模式下 use() 也会自动跳过
+  private el: HTMLElement | null = null
+  private current: ToggleType = '2d'
+
+  constructor(private onToggle: (t: ToggleType) => unknown) {}
+
+  install(map: BaseMap) {
+    if (!this.el) {                               // ② install 必须幂等：迁移到新引擎时只重挂方法
+      this.el = document.createElement('button')
+      this.el.textContent = '切换到 3D'
+      this.el.onclick = () => this.onToggle(this.current === '2d' ? '3d' : '2d')
+      map.getContainer().appendChild(this.el)
+    }
+    ;(map as any).updateToggleButton = (t: ToggleType) => {  // ③ 暴露此方法供 SDK 同步文字
+      this.current = t
+      this.el!.textContent = t === '2d' ? '切换到 3D' : '切换到 2D'
+    }
+  }
+
+  uninstall(map: BaseMap) {
+    this.el?.remove()
+    this.el = null
+    delete (map as any).updateToggleButton
+  }
+}
+
+const map = await sdk.init({ type: 'both', container: 'map', ... })
+map.use(new MyToggleButtonPlugin((t) => sdk.switchTo(t)))
 ```
 
 **引擎切换时的插件迁移**

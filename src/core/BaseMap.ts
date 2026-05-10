@@ -30,6 +30,7 @@ export abstract class BaseMap implements IMap {
   protected popupMgr = new PopupManager()
   protected layerMgr = new LayerManager()
   private _plugins = new Map<string, MapPlugin>()
+  private _bothMode = false
 
   protected constructor(config: MapConfig) {
     this.container = getElement(config.container)
@@ -160,6 +161,9 @@ export abstract class BaseMap implements IMap {
    * 同名插件重复安装时会先卸载旧实例。
    */
   use(plugin: MapPlugin): BaseMap {
+    // name='toggle-button' 是 2D/3D 切换按钮的约定名：单引擎模式下没有切换语义，
+    // 静默跳过，避免渲染出点了也无法保持一致状态的"假"按钮。
+    if (plugin.name === 'toggle-button' && !this._bothMode) return this
     if (this._plugins.has(plugin.name)) {
       this.unuse(plugin.name)
     }
@@ -262,5 +266,25 @@ export abstract class BaseMap implements IMap {
 
   getPopupManager(): PopupManager {
     return this.popupMgr
+  }
+
+  /** 获取地图所挂载的 DOM 容器，供插件挂载 UI 元素使用 */
+  getContainer(): HTMLElement {
+    return this.container
+  }
+
+  /**
+   * 由 MapSDK 内部调用：标记当前实例是否处于 both 模式。
+   *
+   * UI 插件（如 ToggleButtonPlugin）会据此决定是否渲染切换 UI。
+   * 用户代码无需调用此方法。
+   */
+  markBothMode(value: boolean): void {
+    this._bothMode = value
+  }
+
+  /** 当前实例是否由 MapSDK 在 both 模式下创建（即支持 2D/3D 切换） */
+  isBothMode(): boolean {
+    return this._bothMode
   }
 }
