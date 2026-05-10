@@ -18,7 +18,7 @@
 ```
 src/
 ├── core/
-│   ├── BaseMap.ts      # 抽象基类：IMap 核心服务 + 图层/要素/弹窗基础功能 + 插件系统
+│   ├── BaseMap.ts      # 抽象基类：IMap 核心服务 + 图层/要素基础功能 + 插件系统
 │   ├── MapSDK.ts       # SDK 入口，工厂模式 + 2D/3D 切换管理
 │   ├── Plugin.ts       # MapPlugin 接口定义
 │   └── index.ts        # core 模块导出
@@ -36,6 +36,7 @@ src/
 │   │   ├── OlEditPlugin.ts     # OL 编辑插件
 │   │   ├── OlPickPlugin.ts     # OL 点选插件
 │   │   ├── OlMeasurePlugin.ts  # OL 测量插件
+│   │   ├── OlPopupPlugin.ts    # OL 弹窗插件
 │   │   └── index.ts
 │   └── index.ts        # ol 模块导出
 ├── cesium/
@@ -52,6 +53,7 @@ src/
 │   │   ├── CesiumEditPlugin.ts     # Cesium 编辑插件
 │   │   ├── CesiumPickPlugin.ts     # Cesium 点选插件
 │   │   ├── CesiumMeasurePlugin.ts  # Cesium 测量插件
+│   │   ├── CesiumPopupPlugin.ts    # Cesium 弹窗插件
 │   │   └── index.ts
 │   └── index.ts        # cesium 模块导出
 ├── state/
@@ -559,9 +561,6 @@ stopArea()
 | removeFeature | `id: string` | `void` | 根据 ID 移除指定要素 |
 | updateFeature | `id, style` | `void` | 更新指定要素样式 |
 | clearFeatures | - | `void` | 清除所有绘制要素 |
-| showPopup | `options: PopupOptions` | `void` | 显示信息弹窗 |
-| hidePopup | `id: string` | `void` | 隐藏指定弹窗 |
-| clearPopups | - | `void` | 清除所有弹窗 |
 
 **3. 可选扩展（由插件动态挂载，未安装时调用会抛错）**
 
@@ -575,6 +574,9 @@ stopArea()
 | editFeature | `*EditPlugin` | `() => void` | 交互式编辑要素，返回取消函数 |
 | measureDistance | `*MeasurePlugin` | `() => void` | 交互式距离测量，返回取消函数 |
 | measureArea | `*MeasurePlugin` | `() => void` | 交互式面积测量，返回取消函数 |
+| showPopup | `*PopupPlugin` | `void` | 显示信息弹窗 |
+| hidePopup | `*PopupPlugin` | `void` | 隐藏指定弹窗 |
+| clearPopups | `*PopupPlugin` | `void` | 清除所有弹窗 |
 
 > 默认情况下引擎子类已通过 `getDefaultPlugins()` 自动安装所有插件，无需手动 `use()`。如果你想精简体积，可以在 `init()` 后调用 `map.unuse('draw')` 等卸载不需要的插件。
 
@@ -721,7 +723,7 @@ SDK 默认加载天地图 **影像底图 + 影像注记** 两层叠加：
 
 ### 插件系统
 
-SDK 采用 **核心 + 插件** 架构。`BaseMap` 只保留 IMap 核心服务和图层/要素/弹窗基础功能，**绘制、编辑、点选、测量** 等交互能力均通过插件动态挂载。
+SDK 采用 **核心 + 插件** 架构。`BaseMap` 只保留 IMap 核心服务和图层/要素基础功能，**绘制、编辑、点选、测量、弹窗** 等交互能力均通过插件动态挂载。
 
 **插件接口**
 
@@ -744,6 +746,7 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 | Edit | `OlEditPlugin` | `CesiumEditPlugin` | `editFeature` |
 | Pick | `OlPickPlugin` | `CesiumPickPlugin` | `pickAtPixel` |
 | Measure | `OlMeasurePlugin` | `CesiumMeasurePlugin` | `measureDistance` / `measureArea` |
+| Popup | `OlPopupPlugin` | `CesiumPopupPlugin` | `showPopup` / `hidePopup` / `clearPopups` |
 
 **按需卸载/重新安装**
 
@@ -760,7 +763,7 @@ map.unuse('measure').unuse('edit')
 
 // 查看当前已安装的插件
 console.log(map.getPlugins().map(p => p.name))
-// → ['draw', 'edit', 'pick', 'measure']
+// → ['draw', 'edit', 'pick', 'measure', 'popup']
 ```
 
 **编写自定义插件**

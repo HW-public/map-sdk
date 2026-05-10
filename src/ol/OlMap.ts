@@ -1,12 +1,12 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
 import { addTianditu } from './layers/addTianditu'
 import { OlDraw, OlPopup } from './operation'
-import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlMeasurePlugin } from './plugins'
+import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlMeasurePlugin, OlPopupPlugin } from './plugins'
 import 'ol/ol.css'
 
 /**
@@ -184,29 +184,6 @@ export class OlMap extends BaseMap {
   }
 
   protected getDefaultPlugins(): MapPlugin[] {
-    return [new OlDrawPlugin(), new OlEditPlugin(), new OlPickPlugin(), new OlMeasurePlugin()]
-  }
-
-  showPopup(options: PopupOptions): void {
-    const id = options.id ?? `sdk-popup-${Date.now()}`
-    const opts = { ...options, id }
-    super.showPopup(opts)
-    OlPopup.show(this.map, {
-      ...opts,
-      onClose: () => {
-        super.hidePopup(id)
-        options.onClose?.()
-      },
-    })
-  }
-
-  hidePopup(id: string): void {
-    super.hidePopup(id)
-    OlPopup.hide(this.map, id)
-  }
-
-  clearPopups(): void {
-    super.clearPopups()
-    OlPopup.clear(this.map)
+    return [new OlDrawPlugin(), new OlEditPlugin(), new OlPickPlugin(), new OlMeasurePlugin(), new OlPopupPlugin()]
   }
 }

@@ -11,11 +11,11 @@ import type { MapPlugin } from './Plugin'
  * 1. IMap 核心服务（abstract）— 生命周期、视角、事件、状态
  *    所有引擎必须实现，否则编译不通过。
  *
- * 2. 基础功能（基类提供默认实现，子类可 override）— 图层、要素、弹窗
- *    默认实现负责状态管理（LayerManager/OverlayManager/PopupManager）。
+ * 2. 基础功能（基类提供默认实现，子类可 override）— 图层、要素
+ *    默认实现负责状态管理（LayerManager/OverlayManager）。
  *    引擎子类 override 时必须先调用 super，再补充渲染逻辑。
  *
- * 3. 可选扩展（由插件动态挂载）— 绘制、编辑、点选、测量
+ * 3. 可选扩展（由插件动态挂载）— 绘制、编辑、点选、测量、弹窗
  *    不安装插件时调用会抛错提示。引擎通过 getDefaultPlugins() 控制默认安装哪些。
  *
  * 新增图层类型时的步骤：
@@ -151,48 +151,12 @@ export abstract class BaseMap implements IMap {
     }
   }
 
-  // ==================== 5. 弹窗（基类默认记录，子类 override 渲染） ====================
-
-  /**
-   * 显示信息弹窗。
-   *
-   * 默认实现：记录到 PopupManager。子类如需实际渲染，请 override 并先调用 super。
-   */
-  showPopup(options: PopupOptions): void {
-    this.popupMgr.add(options)
-  }
-
-  /**
-   * 隐藏指定弹窗。
-   *
-   * 默认实现：从 PopupManager 移除。子类如需实际清除，请 override 并先调用 super。
-   */
-  hidePopup(id: string): void {
-    this.popupMgr.remove(id)
-  }
-
-  /**
-   * 清除所有弹窗。
-   *
-   * 默认实现：清空 PopupManager。子类如需实际清除，请 override 并先调用 super。
-   */
-  clearPopups(): void {
-    this.popupMgr.clear()
-  }
-
-  /** 恢复弹窗 — 遍历重放 showPopup，子类 showPopup 负责具体渲染 */
-  restorePopups(popups: PopupOptions[]): void {
-    for (const popup of popups) {
-      this.showPopup(popup)
-    }
-  }
-
-  // ==================== 6. 插件系统 ====================
+  // ==================== 5. 插件系统 ====================
 
   /**
    * 注册功能插件。
    *
-   * 插件通过动态挂载方法扩展地图能力（绘制、编辑、点选等）。
+   * 插件通过动态挂载方法扩展地图能力（绘制、编辑、点选、测量、弹窗等）。
    * 同名插件重复安装时会先卸载旧实例。
    */
   use(plugin: MapPlugin): BaseMap {
@@ -231,7 +195,7 @@ export abstract class BaseMap implements IMap {
     }
   }
 
-  // ==================== 7. 可选功能扩展（由插件提供） ====================
+  // ==================== 6. 可选功能扩展（由插件挂载） ====================
 
   /** 未安装 DrawPlugin 时抛错提示 */
   drawPoint(_options?: DrawOptions): () => void {
@@ -269,7 +233,28 @@ export abstract class BaseMap implements IMap {
     throw new Error('MeasurePlugin not installed. Call map.use(new MeasurePlugin()) first.')
   }
 
-  // ==================== 8. 管理器访问 ====================
+  /** 未安装 PopupPlugin 时抛错提示 */
+  showPopup(_options: PopupOptions): void {
+    throw new Error('PopupPlugin not installed. Call map.use(new PopupPlugin()) first.')
+  }
+
+  hidePopup(_id: string): void {
+    throw new Error('PopupPlugin not installed. Call map.use(new PopupPlugin()) first.')
+  }
+
+  clearPopups(): void {
+    throw new Error('PopupPlugin not installed. Call map.use(new PopupPlugin()) first.')
+  }
+
+  /** 恢复弹窗 — 遍历重放 showPopup；若未安装 PopupPlugin 则静默跳过 */
+  restorePopups(popups: PopupOptions[]): void {
+    if (!this._plugins.has('popup')) return
+    for (const popup of popups) {
+      this.showPopup(popup)
+    }
+  }
+
+  // ==================== 7. 管理器访问 ====================
 
   getOverlayManager(): OverlayManager {
     return this.overlayMgr

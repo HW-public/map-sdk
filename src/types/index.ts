@@ -22,13 +22,13 @@ export interface SwitchToOptions {
  * 不包含（由 BaseMap 扩展提供）：
  * - 图层管理（addLayer / removeLayer / setLayerVisible）— 基类默认实现
  * - 绘制要素（addFeature / removeFeature）— 基类默认实现
- * - 弹窗（showPopup / hidePopup）— 基类默认实现
  *
  * 不包含（由插件动态挂载）：
  * - 交互绘制（drawPoint / drawLine / drawPolygon）— DrawPlugin
  * - 要素编辑（editFeature）— EditPlugin
  * - 点选查询（pickAtPixel）— PickPlugin
  * - 测量（measureDistance / measureArea）— MeasurePlugin
+ * - 信息弹窗（showPopup / hidePopup / clearPopups）— PopupPlugin
  */
 export interface IMap {
   destroy(): void

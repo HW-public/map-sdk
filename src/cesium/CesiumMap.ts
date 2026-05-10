@@ -1,10 +1,10 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
 import { addTianditu } from './layers/addTianditu'
 import { CesiumDraw, CesiumPopup } from './operation'
-import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumMeasurePlugin } from './plugins'
+import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumMeasurePlugin, CesiumPopupPlugin } from './plugins'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -266,29 +266,6 @@ export class CesiumMap extends BaseMap {
   }
 
   protected getDefaultPlugins(): MapPlugin[] {
-    return [new CesiumDrawPlugin(), new CesiumEditPlugin(), new CesiumPickPlugin(), new CesiumMeasurePlugin()]
-  }
-
-  showPopup(options: PopupOptions): void {
-    const id = options.id ?? `sdk-popup-${Date.now()}`
-    const opts = { ...options, id }
-    super.showPopup(opts)
-    CesiumPopup.show(this.viewer, {
-      ...opts,
-      onClose: () => {
-        super.hidePopup(id)
-        options.onClose?.()
-      },
-    })
-  }
-
-  hidePopup(id: string): void {
-    super.hidePopup(id)
-    CesiumPopup.hide(this.viewer, id)
-  }
-
-  clearPopups(): void {
-    super.clearPopups()
-    CesiumPopup.clear(this.viewer)
+    return [new CesiumDrawPlugin(), new CesiumEditPlugin(), new CesiumPickPlugin(), new CesiumMeasurePlugin(), new CesiumPopupPlugin()]
   }
 }

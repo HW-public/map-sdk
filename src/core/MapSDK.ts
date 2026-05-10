@@ -224,10 +224,15 @@ export class MapSDK {
       this.impl!.restorePopups(popups)
     }
 
-    // === 迁移插件 ===
-    // 将旧实例上的插件重新安装到新实例，保持功能一致性。
+    // === 迁移用户自定义插件 ===
+    // 新实例创建时已通过 getDefaultPlugins() 安装引擎专属的默认插件，
+    // 这里只迁移旧实例上「不在新实例默认列表里」的用户自定义插件，
+    // 避免把 OL 专属插件错装到 Cesium 上（同名 use 会先 unuse 现有的）。
+    const existingNames = new Set(this.impl!.getPlugins().map((p) => p.name))
     for (const plugin of oldImpl?.getPlugins() ?? []) {
-      this.impl!.use(plugin)
+      if (!existingNames.has(plugin.name)) {
+        this.impl!.use(plugin)
+      }
     }
 
     // === 恢复跨切换持久化事件监听 ===
