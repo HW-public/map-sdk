@@ -6,19 +6,21 @@
 
 - **构建工具**: Vite
 - **语言**: TypeScript
+- **测试框架**: Vitest
 - **运行环境**: Node.js >= 20.19.0
 - **2D 引擎**: OpenLayers
 - **3D 引擎**: Cesium
 - **底图服务**: 天地图
-- **插件**: vite-plugin-cesium
+- **构建插件**: vite-plugin-cesium
 
 ## 项目结构
 
 ```
 src/
 ├── core/
-│   ├── BaseMap.ts      # 抽象基类，定义 IMap 核心服务 + 功能方法默认实现
+│   ├── BaseMap.ts      # 抽象基类：IMap 核心服务 + 图层/要素/弹窗基础功能 + 插件系统
 │   ├── MapSDK.ts       # SDK 入口，工厂模式 + 2D/3D 切换管理
+│   ├── Plugin.ts       # MapPlugin 接口定义
 │   └── index.ts        # core 模块导出
 ├── ol/
 │   ├── OlMap.ts        # OpenLayers 2D 引擎实现
@@ -28,6 +30,12 @@ src/
 │   │   ├── Draw.ts     # 点、线、面交互绘制
 │   │   ├── Select.ts   # 点选、框选
 │   │   ├── Edit.ts     # 要素编辑（Modify 交互）
+│   │   └── index.ts
+│   ├── plugins/
+│   │   ├── OlDrawPlugin.ts     # OL 绘制插件
+│   │   ├── OlEditPlugin.ts     # OL 编辑插件
+│   │   ├── OlPickPlugin.ts     # OL 点选插件
+│   │   ├── OlMeasurePlugin.ts  # OL 测量插件
 │   │   └── index.ts
 │   └── index.ts        # ol 模块导出
 ├── cesium/
@@ -39,12 +47,28 @@ src/
 │   │   ├── Select.ts   # 点选、框选
 │   │   ├── Edit.ts     # 要素编辑（手动拖拽）
 │   │   └── index.ts
+│   ├── plugins/
+│   │   ├── CesiumDrawPlugin.ts     # Cesium 绘制插件
+│   │   ├── CesiumEditPlugin.ts     # Cesium 编辑插件
+│   │   ├── CesiumPickPlugin.ts     # Cesium 点选插件
+│   │   ├── CesiumMeasurePlugin.ts  # Cesium 测量插件
+│   │   └── index.ts
 │   └── index.ts        # cesium 模块导出
 ├── state/
 │   ├── StateManager.ts # 地图状态、跨切换事件缓存
 │   ├── LayerManager.ts # 图层记录与恢复
 │   ├── OverlayManager.ts # 绘制要素记录与恢复（同 id 自动去重）
+│   ├── PopupManager.ts # 弹窗记录与恢复
 │   └── index.ts        # state 模块导出
+├── types/
+│   ├── map.ts          # MapType / MapConfig / MapEvent / MapState
+│   ├── layer.ts        # LayerInfo / TiandituLayerInfo
+│   ├── feature.ts      # FeatureType / FeatureInfo / DrawOptions
+│   ├── popup.ts        # PopupOptions
+│   ├── measure.ts      # MeasureDistanceOptions / MeasureAreaOptions
+│   └── index.ts        # 统一类型导出 + IMap / SwitchToOptions
+├── utils/
+│   └── index.ts        # 坐标转换、距离/面积计算等通用工具
 ├── examples/
 │   ├── map.ts          # 地图初始化（top-level await）
 │   ├── toolbar.ts      # 工具栏 UI 交互
@@ -57,13 +81,6 @@ src/
 │   └── popup.ts        # 弹窗示例
 ├── ui/
 │   └── MapToggleBtn.ts # 2D/3D 切换按钮
-├── types/
-│   ├── map.ts          # MapType / MapConfig / MapEvent / MapState
-│   ├── layer.ts        # LayerInfo / TiandituLayerInfo
-│   ├── feature.ts      # FeatureType / FeatureInfo / DrawOptions
-│   └── index.ts        # 统一导出 + SwitchToOptions / IMap
-├── utils/
-│   └── index.ts        # 通用工具函数
 ├── index.ts            # SDK 对外导出
 └── main.ts             # 示例入口，聚合 examples/ 各模块
 ```
@@ -125,6 +142,8 @@ npm run build
 | 工具 | 距离 / 面积计算 | 球面距离、折线长度、多边形面积，支持 m/km/miles/亩等单位 |
 | 交互 | 点选查询 | `pickAtPixel(pixel)` 点击地图拾取点/线/面要素，返回 ID/类型/坐标/样式 |
 | 交互 | 要素编辑 | `editFeature(id)` 拖拽顶点、点击边插入、右键/Alt/Shift+点击删除，返回取消函数 |
+| 交互 | 距离测量 | `measureDistance()` 交互式量测两点间球面距离，单位可选 m/km/miles/nmi |
+| 交互 | 面积测量 | `measureArea()` 交互式量测多边形球面面积，单位可选 m²/km²/hectare/亩 |
 | 要素 | 跨切换要素恢复 | 切换 2D/3D 时自动重放 OverlayManager 记录 |
 
 ### 待实现
@@ -157,7 +176,6 @@ npm run build
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
 | 框选查询 | 拉框选择范围内的要素 | P2 |
-| 测量工具 | 测距（线段累加）、测面（多边形面积） | P2 |
 
 #### 分析与服务
 
@@ -461,6 +479,41 @@ stopEdit()
 > - 3D 使用 hover-snap 模式：鼠标移入时动态显示蓝色提示点，靠近顶点吸附、靠近边投影
 > - 编辑完成后，2D/3D 切换时坐标会自动恢复
 
+### 13. 交互式测量
+
+启动交互式量测，鼠标点击采集顶点，双击结束。结果通过回调返回。
+
+```typescript
+// 距离测量
+const stopDistance = map.measureDistance({
+  unit: 'km',
+  onComplete: (result) => {
+    console.log('总距离:', result.value, result.unit) // → 总距离: 1.234 km
+  },
+})
+
+// 面积测量
+const stopArea = map.measureArea({
+  unit: 'mu',
+  onComplete: (result) => {
+    console.log('总面积:', result.value, result.unit) // → 总面积: 12.5 mu
+  },
+})
+
+// 主动取消
+stopDistance()
+stopArea()
+```
+
+**支持的单位**：
+
+| 类型 | 可选值 |
+|------|--------|
+| 距离 | `'m'`（默认） / `'km'` / `'miles'` / `'nmi'` |
+| 面积 | `'m2'`（默认） / `'km2'` / `'hectare'` / `'mu'` |
+
+> 测量功能由 `OlMeasurePlugin` / `CesiumMeasurePlugin` 提供。如不需要，可通过 `map.unuse('measure')` 卸载。
+
 ## API 文档
 
 ### MapConfig
@@ -476,9 +529,9 @@ stopEdit()
 
 ### IMap 接口
 
-所有地图实例均实现此接口，包含**核心服务**与**功能方法**：
+地图实例的能力按三个层次划分：**核心服务（abstract）**、**基础功能（基类默认实现）**、**可选扩展（由插件提供）**。
 
-**核心服务**
+**1. 核心服务（IMap，所有引擎必须实现）**
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
@@ -493,26 +546,45 @@ stopEdit()
 | getState | - | `MapState` | 获取当前状态 |
 | setState | `state` | `void` | 恢复状态 |
 
-**功能方法**
+**2. 基础功能（BaseMap 默认实现，引擎 override 渲染部分）**
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| loadTianditu | `key: string, id: string` | `void` | 加载天地图底图（需指定图层 ID） |
-| addFeature | `feature: FeatureInfo` | `void` | 添加绘制要素（同 id 会自动覆盖旧要素） |
-| removeFeature | `id: string` | `void` | 根据 ID 移除指定要素 |
-| clearFeatures | - | `void` | 清除所有绘制要素 |
+| addLayer | `layer: LayerInfo` | `void` | 添加图层（自动记录 + 触发渲染） |
+| loadTianditu | `key: string, id: string` | `void` | 加载天地图底图 |
 | removeLayer | `id: string` | `void` | 根据 ID 移除指定图层 |
-| setLayerVisible | `id: string, visible: boolean` | `void` | 设置图层可见性 |
-| setLayerOpacity | `id: string, opacity: number` | `void` | 设置图层透明度（0~1） |
-| drawPoint | `options?: DrawOptions` | `() => void` | 交互式绘制点，返回取消函数 |
-| drawLine | `options?: DrawOptions` | `() => void` | 交互式绘制线，点击加点、双击结束 |
-| drawPolygon | `options?: DrawOptions` | `() => void` | 交互式绘制面，点击加点、双击结束 |
-| stopDraw | - | `void` | 终止当前交互式绘制 |
-| pickAtPixel | `pixel: [number, number]` | `PickResult[]` | 根据屏幕坐标拾取要素 |
-| editFeature | `id: string, options?: EditOptions` | `() => void` | 交互式编辑要素，返回取消函数 |
+| setLayerVisible | `id, visible` | `void` | 设置图层可见性 |
+| setLayerOpacity | `id, opacity` | `void` | 设置图层透明度（0~1） |
+| addFeature | `feature: FeatureInfo` | `void` | 添加绘制要素（同 id 自动覆盖） |
+| removeFeature | `id: string` | `void` | 根据 ID 移除指定要素 |
+| updateFeature | `id, style` | `void` | 更新指定要素样式 |
+| clearFeatures | - | `void` | 清除所有绘制要素 |
 | showPopup | `options: PopupOptions` | `void` | 显示信息弹窗 |
 | hidePopup | `id: string` | `void` | 隐藏指定弹窗 |
 | clearPopups | - | `void` | 清除所有弹窗 |
+
+**3. 可选扩展（由插件动态挂载，未安装时调用会抛错）**
+
+| 方法 | 提供方 | 返回值 | 说明 |
+|------|--------|--------|------|
+| drawPoint | `*DrawPlugin` | `() => void` | 交互式绘制点，返回取消函数 |
+| drawLine | `*DrawPlugin` | `() => void` | 交互式绘制线，点击加点、双击结束 |
+| drawPolygon | `*DrawPlugin` | `() => void` | 交互式绘制面，点击加点、双击结束 |
+| stopDraw | `*DrawPlugin` | `void` | 终止当前交互式绘制 |
+| pickAtPixel | `*PickPlugin` | `PickResult[]` | 根据屏幕像素拾取要素 |
+| editFeature | `*EditPlugin` | `() => void` | 交互式编辑要素，返回取消函数 |
+| measureDistance | `*MeasurePlugin` | `() => void` | 交互式距离测量，返回取消函数 |
+| measureArea | `*MeasurePlugin` | `() => void` | 交互式面积测量，返回取消函数 |
+
+> 默认情况下引擎子类已通过 `getDefaultPlugins()` 自动安装所有插件，无需手动 `use()`。如果你想精简体积，可以在 `init()` 后调用 `map.unuse('draw')` 等卸载不需要的插件。
+
+**4. 插件管理**
+
+| 方法 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| use | `plugin: MapPlugin` | `BaseMap` | 注册插件，同名会先卸载旧实例 |
+| unuse | `name: string` | `BaseMap` | 卸载指定插件 |
+| getPlugins | - | `MapPlugin[]` | 获取已安装的所有插件 |
 
 ### MapEvent
 
@@ -585,7 +657,7 @@ stopEdit()
 
 **CoordSystem 类型：** `'wgs84' | 'gcj02' | 'bd09'`
 
-### 13. 距离 / 面积计算
+### 14. 距离 / 面积计算（工具函数）
 
 SDK 内置球面距离和面积计算工具，不依赖具体地图引擎，可直接用于测量分析。
 
@@ -646,6 +718,78 @@ SDK 默认加载天地图 **影像底图 + 影像注记** 两层叠加：
 - 矢量注记：`cva_w`
 
 ## 扩展开发
+
+### 插件系统
+
+SDK 采用 **核心 + 插件** 架构。`BaseMap` 只保留 IMap 核心服务和图层/要素/弹窗基础功能，**绘制、编辑、点选、测量** 等交互能力均通过插件动态挂载。
+
+**插件接口**
+
+```typescript
+// src/core/Plugin.ts
+export interface MapPlugin {
+  readonly name: string
+  install(map: BaseMap): void
+  uninstall?(map: BaseMap): void
+}
+```
+
+**默认安装的插件**
+
+OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装：
+
+| 插件 | OL 实现 | Cesium 实现 | 提供方法 |
+|------|---------|-------------|----------|
+| Draw | `OlDrawPlugin` | `CesiumDrawPlugin` | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw` |
+| Edit | `OlEditPlugin` | `CesiumEditPlugin` | `editFeature` |
+| Pick | `OlPickPlugin` | `CesiumPickPlugin` | `pickAtPixel` |
+| Measure | `OlMeasurePlugin` | `CesiumMeasurePlugin` | `measureDistance` / `measureArea` |
+
+**按需卸载/重新安装**
+
+```typescript
+// 卸载点选插件，调用 pickAtPixel 会抛错
+map.unuse('pick')
+
+// 重新安装
+import { OlPickPlugin } from 'map-sdk/ol/plugins'
+map.use(new OlPickPlugin())
+
+// 链式调用
+map.unuse('measure').unuse('edit')
+
+// 查看当前已安装的插件
+console.log(map.getPlugins().map(p => p.name))
+// → ['draw', 'edit', 'pick', 'measure']
+```
+
+**编写自定义插件**
+
+```typescript
+import type { MapPlugin, BaseMap } from 'map-sdk'
+
+class MyPlugin implements MapPlugin {
+  readonly name = 'my'
+
+  install(map: BaseMap): void {
+    // 动态挂载方法到 map 实例
+    ;(map as any).myMethod = () => {
+      console.log('Hello from my plugin')
+    }
+  }
+
+  uninstall(map: BaseMap): void {
+    delete (map as any).myMethod
+  }
+}
+
+map.use(new MyPlugin())
+;(map as any).myMethod() // → "Hello from my plugin"
+```
+
+**引擎切换时的插件迁移**
+
+`MapSDK.switchTo()` 会自动把当前实例的插件迁移到新引擎实例上，所以切换 2D/3D 时无需重新 `use()`。
 
 ### 添加新的图层类型
 

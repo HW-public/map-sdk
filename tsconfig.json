@@ -3,7 +3,7 @@
     "target": "es2023",
     "module": "esnext",
     "lib": ["ES2023", "DOM"],
-    "types": ["vite/client"],
+    "types": ["vite/client", "vitest/globals"],
     "skipLibCheck": true,
     "ignoreDeprecations": "6.0",
 
@@ -26,5 +26,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "test", "vite.config.ts"]
 }

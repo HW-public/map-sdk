@@ -1,5 +1,7 @@
 import { map } from './map'
+const TIANDITU_KEY = 'dd92b4607cb0aadfc5e615028e99968e'
 
+map.loadTianditu(TIANDITU_KEY, 'tianditu-1')
 // 移除天地图图层
 document.getElementById('btn-remove-layer')!.addEventListener('click', () => {
   map.removeLayer('tianditu-1')

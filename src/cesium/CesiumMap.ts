@@ -1,8 +1,10 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult, EditOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
+import type { MapPlugin } from '@/core'
 import { addTianditu } from './layers/addTianditu'
-import { CesiumDraw, CesiumPopup, CesiumEdit } from './operation'
+import { CesiumDraw, CesiumPopup } from './operation'
+import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumMeasurePlugin } from './plugins'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -45,6 +47,7 @@ export class CesiumMap extends BaseMap {
       destination: Cesium.Cartesian3.fromDegrees(center[0], center[1], height),
       duration: 0,
     })
+    this.installDefaultPlugins()
   }
 
   /** 子类实现：根据 layer.type 分发到具体渲染模块 */
@@ -262,47 +265,8 @@ export class CesiumMap extends BaseMap {
     CesiumDraw.clearFeatures(this.viewer)
   }
 
-  drawPoint(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'point', this.wrapDrawOptions(options))
-  }
-
-  drawLine(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'polyline', this.wrapDrawOptions(options))
-  }
-
-  drawPolygon(options?: DrawOptions): () => void {
-    return CesiumDraw.startDraw(this.viewer, 'polygon', this.wrapDrawOptions(options))
-  }
-
-  stopDraw(): void {
-    CesiumDraw.stopDraw(this.viewer)
-  }
-
-  editFeature(id: string, options?: EditOptions): () => void {
-    if (!this.viewer) return () => {}
-    return CesiumEdit.startEdit(this.viewer, this.overlayMgr, id, options)
-  }
-
-  pickAtPixel(pixel: [number, number]): PickResult[] {
-    if (!this.viewer) return []
-    const cartesian2 = new Cesium.Cartesian2(pixel[0], pixel[1])
-    const pickedObjects = this.viewer.scene.drillPick(cartesian2)
-    const results: PickResult[] = []
-    for (const picked of pickedObjects) {
-      if (picked.id && picked.id.properties) {
-        const props = picked.id.properties
-        const tag = props?.__sdkDraw?.getValue()
-        if (tag) {
-          results.push({
-            id: props?.featureId?.getValue(),
-            type: props?.featureType?.getValue(),
-            coords: props?.featureCoords?.getValue(),
-            style: props?.featureStyle?.getValue(),
-          })
-        }
-      }
-    }
-    return results
+  protected getDefaultPlugins(): MapPlugin[] {
+    return [new CesiumDrawPlugin(), new CesiumEditPlugin(), new CesiumPickPlugin(), new CesiumMeasurePlugin()]
   }
 
   showPopup(options: PopupOptions): void {
@@ -326,17 +290,5 @@ export class CesiumMap extends BaseMap {
   clearPopups(): void {
     super.clearPopups()
     CesiumPopup.clear(this.viewer)
-  }
-
-  /** 包装 DrawOptions，绘制完成后自动 addFeature 并透传用户回调 */
-  private wrapDrawOptions(options?: DrawOptions): DrawOptions | undefined {
-    if (!options) return undefined
-    return {
-      ...options,
-      onComplete: (feature) => {
-        this.addFeature(feature)
-        options.onComplete?.(feature)
-      },
-    }
   }
 }

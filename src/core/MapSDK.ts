@@ -168,6 +168,9 @@ export class MapSDK {
           ? this.impl.getViewportExtent()
           : undefined
 
+    // 保存旧实例引用用于后续插件迁移
+    const oldImpl = this.impl
+
     // === 销毁旧实例 ===
     // 释放引擎占用的资源（canvas、DOM、事件监听、网络请求等），
     // 防止内存泄漏。销毁后 this.impl 置为 null，避免后续误用。
@@ -219,6 +222,12 @@ export class MapSDK {
     // 遍历步骤 2 捕获的 PopupOptions 列表，在新实例上重新显示。
     if (syncPopups) {
       this.impl!.restorePopups(popups)
+    }
+
+    // === 迁移插件 ===
+    // 将旧实例上的插件重新安装到新实例，保持功能一致性。
+    for (const plugin of oldImpl?.getPlugins() ?? []) {
+      this.impl!.use(plugin)
     }
 
     // === 恢复跨切换持久化事件监听 ===

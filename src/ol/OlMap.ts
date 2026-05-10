@@ -1,10 +1,12 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, DrawOptions, LayerInfo, TiandituLayerInfo, PopupOptions, PickResult, EditOptions } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo, PopupOptions } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
+import type { MapPlugin } from '@/core'
 import { addTianditu } from './layers/addTianditu'
-import { OlDraw, OlPopup, OlEdit } from './operation'
+import { OlDraw, OlPopup } from './operation'
+import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlMeasurePlugin } from './plugins'
 import 'ol/ol.css'
 
 /**
@@ -33,6 +35,7 @@ export class OlMap extends BaseMap {
         maxZoom: 18,
       }),
     })
+    this.installDefaultPlugins()
   }
 
   /** 子类实现：根据 layer.type 分发到具体渲染模块 */
@@ -180,50 +183,8 @@ export class OlMap extends BaseMap {
     OlDraw.clearFeatures(this.map)
   }
 
-  drawPoint(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'point', this.wrapDrawOptions(options))
-  }
-
-  drawLine(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'polyline', this.wrapDrawOptions(options))
-  }
-
-  drawPolygon(options?: DrawOptions): () => void {
-    return OlDraw.startDraw(this.map, 'polygon', this.wrapDrawOptions(options))
-  }
-
-  /** 包装 DrawOptions，绘制完成后自动 addFeature 并透传用户回调 */
-  private wrapDrawOptions(options?: DrawOptions): DrawOptions | undefined {
-    if (!options) return undefined
-    return {
-      ...options,
-      onComplete: (feature) => {
-        this.addFeature(feature)
-        options.onComplete?.(feature)
-      },
-    }
-  }
-
-  stopDraw(): void {
-    OlDraw.stopDraw(this.map)
-  }
-
-  editFeature(id: string, options?: EditOptions): () => void {
-    if (!this.map) return () => {}
-    return OlEdit.startEdit(this.map, this.overlayMgr, id, options)
-  }
-
-  pickAtPixel(pixel: [number, number]): PickResult[] {
-    if (!this.map) return []
-    const features = this.map.getFeaturesAtPixel(pixel)
-    console.log('features', features)
-    if (!features) return []
-    return features.map((f) => ({
-      id: f.get('featureId') as string | undefined,
-      type: f.get('featureType') as PickResult['type'],
-      coords: f.get('featureCoords') as [number, number][],
-      style: f.get('featureStyle') as Record<string, unknown> | undefined,
-    }))
+  protected getDefaultPlugins(): MapPlugin[] {
+    return [new OlDrawPlugin(), new OlEditPlugin(), new OlPickPlugin(), new OlMeasurePlugin()]
   }
 
   showPopup(options: PopupOptions): void {

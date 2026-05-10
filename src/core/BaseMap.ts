@@ -1,17 +1,22 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult, EditOptions } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult, EditOptions, MeasureDistanceOptions, MeasureAreaOptions } from '@/types'
 import { getElement } from '@/utils'
 import { LayerManager, OverlayManager, PopupManager } from '@/state'
+import type { MapPlugin } from './Plugin'
 
 /**
  * BaseMap — 二三维引擎的公共抽象基类。
  *
- * 设计原则：
- * 1. 核心服务方法（setCenter/flyTo/on/off 等）保持 abstract — 所有引擎必须实现
- * 2. 功能方法（loadTianditu/addFeature/clearFeatures）提供默认实现 —
- *    自动记录到 LayerManager/OverlayManager，引擎渲染部分由子类 override 补充
- * 3. 图层恢复：BaseMap 提供 addLayer 统一流程（记录 + 触发渲染），
- *    子类通过 loadLayer 用 switch 分发到具体模块
- * 4. 要素恢复：直接复用 addFeature，子类 override 负责实际渲染
+ * 架构分层（三类方法，界限分明）：
+ *
+ * 1. IMap 核心服务（abstract）— 生命周期、视角、事件、状态
+ *    所有引擎必须实现，否则编译不通过。
+ *
+ * 2. 基础功能（基类提供默认实现，子类可 override）— 图层、要素、弹窗
+ *    默认实现负责状态管理（LayerManager/OverlayManager/PopupManager）。
+ *    引擎子类 override 时必须先调用 super，再补充渲染逻辑。
+ *
+ * 3. 可选扩展（由插件动态挂载）— 绘制、编辑、点选、测量
+ *    不安装插件时调用会抛错提示。引擎通过 getDefaultPlugins() 控制默认安装哪些。
  *
  * 新增图层类型时的步骤：
  * - 加模块文件（如 addWms.ts）
@@ -21,16 +26,17 @@ import { LayerManager, OverlayManager, PopupManager } from '@/state'
 export abstract class BaseMap implements IMap {
   protected container: HTMLElement
   protected config: MapConfig
-  protected layerMgr = new LayerManager()
   protected overlayMgr = new OverlayManager()
   protected popupMgr = new PopupManager()
+  protected layerMgr = new LayerManager()
+  private _plugins = new Map<string, MapPlugin>()
 
   protected constructor(config: MapConfig) {
     this.container = getElement(config.container)
     this.config = config
   }
 
-  // ==================== IMap 核心服务方法（子类必须实现） ====================
+  // ==================== 1. IMap 核心服务（子类必须实现） ====================
 
   abstract init(): Promise<void> | void
   abstract destroy(): void
@@ -42,7 +48,7 @@ export abstract class BaseMap implements IMap {
   abstract on(event: string, callback: (e: MapEvent) => void): void
   abstract off(event: string, callback: (e: MapEvent) => void): void
 
-  // ==================== IMap 状态管理（基类默认实现） ====================
+  // ==================== 2. 状态管理（基类默认实现） ====================
 
   getState(): MapState {
     return {
@@ -60,14 +66,12 @@ export abstract class BaseMap implements IMap {
     }
   }
 
-  // ==================== 功能方法（默认实现：记录到管理器） ====================
+  // ==================== 3. 图层操作（基类默认实现，子类 override 渲染） ====================
 
-  /**
-   * 添加图层 — 统一流程：记录到 LayerManager，再触发子类渲染。
-   *
-   * 子类通过实现 loadLayer 完成具体渲染。
-   */
-  private addLayer(layer: LayerInfo): void {
+  /** 引擎内部钩子：根据 layer.type 用 switch 分发到具体渲染模块 */
+  protected abstract loadLayer(layer: LayerInfo): void
+
+  addLayer(layer: LayerInfo): void {
     this.layerMgr.add(layer)
     this.loadLayer(layer)
     if (layer.id) {
@@ -76,40 +80,33 @@ export abstract class BaseMap implements IMap {
     }
   }
 
-  /**
-   * 根据 ID 移除指定图层。
-   *
-   * 默认实现：从 LayerManager 移除。子类如需实际清除，请 override 并先调用 super。
-   */
   removeLayer(id: string): void {
     this.layerMgr.remove(id)
   }
 
-  /**
-   * 设置图层可见性。
-   *
-   * 默认实现：更新 LayerManager 状态。子类如需实际操作引擎，请 override 并先调用 super。
-   */
   setLayerVisible(id: string, visible: boolean): void {
     this.layerMgr.setVisible(id, visible)
   }
 
-  /**
-   * 设置图层透明度。
-   *
-   * 默认实现：更新 LayerManager 状态。子类如需实际操作引擎，请 override 并先调用 super。
-   */
   setLayerOpacity(id: string, opacity: number): void {
     this.layerMgr.setOpacity(id, opacity)
   }
 
-  /** 子类实现：根据 layer.type 用 switch 分发到具体渲染模块 */
-  protected abstract loadLayer(layer: LayerInfo): void
-
-  /** 加载天地图底图 — 公共 API 糖衣，内部自动补 type */
   loadTianditu(key: string, id: string): void {
     this.addLayer({ type: 'tianditu', key, id } as TiandituLayerInfo)
   }
+
+  restoreLayers(layers: LayerInfo[]): void {
+    for (const layer of layers) {
+      this.addLayer(layer)
+    }
+  }
+
+  getLayerManager(): LayerManager {
+    return this.layerMgr
+  }
+
+  // ==================== 4. 绘制要素（基类默认记录，子类 override 渲染） ====================
 
   /**
    * 添加绘制要素。
@@ -147,7 +144,14 @@ export abstract class BaseMap implements IMap {
     this.overlayMgr.clear()
   }
 
-  // ==================== 弹窗（默认实现：记录到管理器） ====================
+  /** 恢复要素 — 遍历重放 addFeature，子类 override 负责实际渲染 */
+  restoreFeatures(features: FeatureInfo[]): void {
+    for (const feature of features) {
+      this.addFeature(feature)
+    }
+  }
+
+  // ==================== 5. 弹窗（基类默认记录，子类 override 渲染） ====================
 
   /**
    * 显示信息弹窗。
@@ -176,74 +180,96 @@ export abstract class BaseMap implements IMap {
     this.popupMgr.clear()
   }
 
-  /**
-   * 恢复弹窗 — 遍历重放 showPopup，子类 showPopup 负责具体渲染。
-   */
+  /** 恢复弹窗 — 遍历重放 showPopup，子类 showPopup 负责具体渲染 */
   restorePopups(popups: PopupOptions[]): void {
     for (const popup of popups) {
       this.showPopup(popup)
     }
   }
 
-  // ==================== 交互式绘制（子类必须实现） ====================
+  // ==================== 6. 插件系统 ====================
 
   /**
-   * 交互式绘制点。
+   * 注册功能插件。
    *
-   * 单击地图完成绘制。
-   *
-   * @param options - 样式和回调选项
-   * @returns 取消函数，调用后终止当前绘制
+   * 插件通过动态挂载方法扩展地图能力（绘制、编辑、点选等）。
+   * 同名插件重复安装时会先卸载旧实例。
    */
-  abstract drawPoint(options?: DrawOptions): () => void
-
-  /**
-   * 交互式绘制线。
-   *
-   * 点击地图添加顶点，双击结束绘制。
-   *
-   * @param options - 样式和回调选项
-   * @returns 取消函数，调用后终止当前绘制
-   */
-  abstract drawLine(options?: DrawOptions): () => void
-
-  /**
-   * 交互式绘制面。
-   *
-   * 点击地图添加顶点，双击结束绘制。
-   *
-   * @param options - 样式和回调选项
-   * @returns 取消函数，调用后终止当前绘制
-   */
-  abstract drawPolygon(options?: DrawOptions): () => void
-
-  /**
-   * 停止当前进行中的交互式绘制。
-   */
-  abstract stopDraw(): void
-
-  /**
-   * 点选查询 — 根据屏幕像素坐标拾取要素。
-   *
-   * @param pixel - 屏幕像素坐标 [x, y]
-   * @returns 拾取到的要素列表
-   */
-  abstract pickAtPixel(pixel: [number, number]): PickResult[]
-
-  /**
-   * 交互式编辑要素 — 拖拽顶点调整形状。
-   *
-   * @param id - 要素 ID
-   * @param options - 编辑完成回调
-   * @returns 取消函数，调用后退出编辑模式
-   */
-  abstract editFeature(id: string, options?: EditOptions): () => void
-
-  // ==================== 管理器访问 ====================
-
-  getLayerManager(): LayerManager {
-    return this.layerMgr
+  use(plugin: MapPlugin): BaseMap {
+    if (this._plugins.has(plugin.name)) {
+      this.unuse(plugin.name)
+    }
+    this._plugins.set(plugin.name, plugin)
+    plugin.install(this)
+    return this
   }
+
+  /**
+   * 卸载指定插件。
+   */
+  unuse(name: string): BaseMap {
+    const plugin = this._plugins.get(name)
+    if (plugin?.uninstall) {
+      plugin.uninstall(this)
+    }
+    this._plugins.delete(name)
+    return this
+  }
+
+  /** 获取当前已安装的所有插件 */
+  getPlugins(): MapPlugin[] {
+    return Array.from(this._plugins.values())
+  }
+
+  /** 子类提供默认插件列表，init 后自动安装 */
+  protected abstract getDefaultPlugins(): MapPlugin[]
+
+  /** 安装默认插件，由子类在 init() 完成后调用 */
+  protected installDefaultPlugins(): void {
+    for (const plugin of this.getDefaultPlugins()) {
+      this.use(plugin)
+    }
+  }
+
+  // ==================== 7. 可选功能扩展（由插件提供） ====================
+
+  /** 未安装 DrawPlugin 时抛错提示 */
+  drawPoint(_options?: DrawOptions): () => void {
+    throw new Error('DrawPlugin not installed. Call map.use(new DrawPlugin()) first.')
+  }
+
+  drawLine(_options?: DrawOptions): () => void {
+    throw new Error('DrawPlugin not installed. Call map.use(new DrawPlugin()) first.')
+  }
+
+  drawPolygon(_options?: DrawOptions): () => void {
+    throw new Error('DrawPlugin not installed. Call map.use(new DrawPlugin()) first.')
+  }
+
+  stopDraw(): void {
+    throw new Error('DrawPlugin not installed. Call map.use(new DrawPlugin()) first.')
+  }
+
+  /** 未安装 PickPlugin 时抛错提示 */
+  pickAtPixel(_pixel: [number, number]): PickResult[] {
+    throw new Error('PickPlugin not installed. Call map.use(new PickPlugin()) first.')
+  }
+
+  /** 未安装 EditPlugin 时抛错提示 */
+  editFeature(_id: string, _options?: EditOptions): () => void {
+    throw new Error('EditPlugin not installed. Call map.use(new EditPlugin()) first.')
+  }
+
+  /** 未安装 MeasurePlugin 时抛错提示 */
+  measureDistance(_options?: MeasureDistanceOptions): () => void {
+    throw new Error('MeasurePlugin not installed. Call map.use(new MeasurePlugin()) first.')
+  }
+
+  measureArea(_options?: MeasureAreaOptions): () => void {
+    throw new Error('MeasurePlugin not installed. Call map.use(new MeasurePlugin()) first.')
+  }
+
+  // ==================== 8. 管理器访问 ====================
 
   getOverlayManager(): OverlayManager {
     return this.overlayMgr
@@ -251,21 +277,5 @@ export abstract class BaseMap implements IMap {
 
   getPopupManager(): PopupManager {
     return this.popupMgr
-  }
-
-  // ==================== 恢复机制（复用操作入口，恢复即重放） ====================
-
-  /** 恢复图层 — 遍历重放 addLayer，子类 loadLayer 负责具体渲染 */
-  restoreLayers(layers: LayerInfo[]): void {
-    for (const layer of layers) {
-      this.addLayer(layer)
-    }
-  }
-
-  /** 恢复要素 — 直接复用 addFeature，子类 override 负责实际渲染 */
-  restoreFeatures(features: FeatureInfo[]): void {
-    for (const feature of features) {
-      this.addFeature(feature)
-    }
   }
 }

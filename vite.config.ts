@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import cesium from 'vite-plugin-cesium'
 
 export default defineConfig({
@@ -11,5 +11,15 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+  },
+  test: {
+    globals: true,
+    environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/main.ts', 'src/examples/**'],
+    },
   },
 })
