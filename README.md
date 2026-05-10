@@ -27,6 +27,7 @@ src/
 │   ├── operation/
 │   │   ├── Draw.ts     # 点、线、面交互绘制
 │   │   ├── Select.ts   # 点选、框选
+│   │   ├── Edit.ts     # 要素编辑（Modify 交互）
 │   │   └── index.ts
 │   └── index.ts        # ol 模块导出
 ├── cesium/
@@ -36,6 +37,7 @@ src/
 │   ├── operation/
 │   │   ├── Draw.ts     # 点、线、面交互绘制
 │   │   ├── Select.ts   # 点选、框选
+│   │   ├── Edit.ts     # 要素编辑（手动拖拽）
 │   │   └── index.ts
 │   └── index.ts        # cesium 模块导出
 ├── state/
@@ -43,6 +45,16 @@ src/
 │   ├── LayerManager.ts # 图层记录与恢复
 │   ├── OverlayManager.ts # 绘制要素记录与恢复（同 id 自动去重）
 │   └── index.ts        # state 模块导出
+├── examples/
+│   ├── map.ts          # 地图初始化（top-level await）
+│   ├── toolbar.ts      # 工具栏 UI 交互
+│   ├── pick.ts         # 点选查询示例
+│   ├── measure.ts      # 坐标转换 / 测距 / 测面
+│   ├── navigate.ts     # 飞行定位示例
+│   ├── draw.ts         # 交互绘制示例
+│   ├── feature.ts      # 要素增删改查示例
+│   ├── layer.ts        # 图层控制示例
+│   └── popup.ts        # 弹窗示例
 ├── ui/
 │   └── MapToggleBtn.ts # 2D/3D 切换按钮
 ├── types/
@@ -53,7 +65,7 @@ src/
 ├── utils/
 │   └── index.ts        # 通用工具函数
 ├── index.ts            # SDK 对外导出
-└── main.ts             # 示例页面入口
+└── main.ts             # 示例入口，聚合 examples/ 各模块
 ```
 
 ## 安装依赖
@@ -346,7 +358,7 @@ map.stopDraw()
 
 > **注意**：交互式绘制完成后，要素会自动进入 `OverlayManager`，切换 2D/3D 时会自动恢复，无需手动调用 `addFeature`。
 
-### 8. 信息弹窗
+### 9. 信息弹窗
 
 ```typescript
 // 显示弹窗
@@ -364,7 +376,7 @@ map.hidePopup('popup-1')
 map.clearPopups()
 ```
 
-### 9. 坐标转换
+### 10. 坐标转换
 
 SDK 内置 WGS84 / GCJ-02 / BD-09 三种坐标系互转工具，适用于国内多源地图数据融合场景。
 
@@ -396,7 +408,7 @@ const gcjCoords = transformCoords(coords, 'wgs84', 'gcj02')
 | GCJ-02 | 火星坐标 | 高德、腾讯、谷歌中国 |
 | BD-09 | 百度坐标 | 百度地图 |
 
-### 10. 点选查询
+### 11. 点选查询
 
 点击地图拾取点、线、面要素，返回要素的 ID、类型、坐标和样式信息。
 
@@ -420,7 +432,7 @@ sdk.on('click', (e) => {
 | coords | `[number, number][]` | 地理坐标数组 |
 | style | `Record<string, unknown>` | 要素样式 |
 
-### 11. 要素编辑
+### 12. 要素编辑
 
 启动交互式编辑模式，拖拽顶点调整形状，点击边插入新顶点，右键或 Alt/Shift+点击删除顶点。编辑完成后自动更新 `OverlayManager` 中的坐标记录。
 
@@ -573,7 +585,7 @@ stopEdit()
 
 **CoordSystem 类型：** `'wgs84' | 'gcj02' | 'bd09'`
 
-### 10. 距离 / 面积计算
+### 13. 距离 / 面积计算
 
 SDK 内置球面距离和面积计算工具，不依赖具体地图引擎，可直接用于测量分析。
 
