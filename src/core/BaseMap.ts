@@ -111,7 +111,7 @@ export abstract class BaseMap implements IMap {
     this.layerMgr.setOpacity(id, opacity)
   }
 
-  loadTianditu(key: string, id: string): void {
+  addTiandituLayer(key: string, id: string): void {
     this.addLayer({ type: 'tianditu', key, id } as TiandituLayerInfo)
   }
 
@@ -130,7 +130,8 @@ export abstract class BaseMap implements IMap {
   /**
    * 添加绘制要素。
    *
-   * 默认实现：记录到 OverlayManager。子类如需实际渲染，请 override 并先调用 super。
+   * 默认实现：记录到 OverlayManager。
+   * FeatureRendererPlugin 安装后会增强此方法，补充引擎渲染。
    */
   addFeature(feature: FeatureInfo): void {
     this.overlayMgr.add(feature)
@@ -139,7 +140,8 @@ export abstract class BaseMap implements IMap {
   /**
    * 根据 ID 移除指定要素。
    *
-   * 默认实现：从 OverlayManager 移除。子类如需实际清除，请 override 并先调用 super。
+   * 默认实现：从 OverlayManager 移除。
+   * FeatureRendererPlugin 安装后会增强此方法，补充引擎清除。
    */
   removeFeature(id: string): void {
     this.overlayMgr.remove(id)
@@ -148,7 +150,8 @@ export abstract class BaseMap implements IMap {
   /**
    * 根据 ID 更新指定要素的样式。
    *
-   * 默认实现：更新 OverlayManager 中的样式记录。子类如需实际渲染，请 override 并先调用 super。
+   * 默认实现：更新 OverlayManager 中的样式记录。
+   * FeatureRendererPlugin 安装后会增强此方法，补充引擎样式更新。
    */
   updateFeature(id: string, style: Record<string, unknown>): void {
     this.overlayMgr.update(id, { style })
@@ -157,13 +160,14 @@ export abstract class BaseMap implements IMap {
   /**
    * 清除所有绘制要素。
    *
-   * 默认实现：清空 OverlayManager。子类如需实际清除，请 override 并先调用 super。
+   * 默认实现：清空 OverlayManager。
+   * FeatureRendererPlugin 安装后会增强此方法，补充引擎清除。
    */
   clearFeatures(): void {
     this.overlayMgr.clear()
   }
 
-  /** 恢复要素 — 遍历重放 addFeature，子类 override 负责实际渲染 */
+  /** 恢复要素 — 遍历重放 addFeature，由当前生效的 addFeature 实现（默认或插件增强）处理 */
   restoreFeatures(features: FeatureInfo[]): void {
     for (const feature of features) {
       this.addFeature(feature)

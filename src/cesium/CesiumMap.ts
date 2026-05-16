@@ -1,9 +1,9 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo } from '@/types'
+import type { MapConfig, MapEvent } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
-import { CesiumDraw, CesiumPopup } from './operation'
-import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumSelectPlugin, CesiumMeasurePlugin, CesiumPopupPlugin, CesiumTiandituLayerPlugin } from './plugins'
+import { CesiumPopup } from './operation'
+import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumSelectPlugin, CesiumMeasurePlugin, CesiumPopupPlugin, CesiumTiandituLayerPlugin, CesiumFeatureRendererPlugin } from './plugins'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -234,29 +234,10 @@ export class CesiumMap extends BaseMap {
     return Math.log2(this.OL_RESOLUTION_Z0 / olResolution)
   }
 
-  addFeature(feature: FeatureInfo): void {
-    super.addFeature(feature)
-    CesiumDraw.addFeature(this.viewer, feature)
-  }
-
-  removeFeature(id: string): void {
-    super.removeFeature(id)
-    CesiumDraw.removeFeature(this.viewer, id)
-  }
-
-  updateFeature(id: string, style: Record<string, unknown>): void {
-    super.updateFeature(id, style)
-    CesiumDraw.updateFeature(this.viewer, id, style)
-  }
-
-  clearFeatures(): void {
-    super.clearFeatures()
-    CesiumDraw.clearFeatures(this.viewer)
-  }
-
   protected getDefaultPlugins(): MapPlugin[] {
     return [
       new CesiumTiandituLayerPlugin(),
+      new CesiumFeatureRendererPlugin(),
       new CesiumDrawPlugin(),
       new CesiumEditPlugin(),
       new CesiumPickPlugin(),

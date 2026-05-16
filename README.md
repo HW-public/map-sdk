@@ -32,12 +32,13 @@ src/
 │   │   ├── Edit.ts     # 要素编辑（Modify 交互）
 │   │   └── index.ts
 │   ├── plugins/
-│   │   ├── OlDrawPlugin.ts     # OL 绘制插件
-│   │   ├── OlEditPlugin.ts     # OL 编辑插件
-│   │   ├── OlPickPlugin.ts     # OL 点选插件
-│   │   ├── OlSelectPlugin.ts   # OL 选择插件（点选 / 框选）
-│   │   ├── OlMeasurePlugin.ts  # OL 测量插件
-│   │   ├── OlPopupPlugin.ts    # OL 弹窗插件
+│   │   ├── OlDrawPlugin.ts           # OL 绘制插件
+│   │   ├── OlEditPlugin.ts           # OL 编辑插件
+│   │   ├── OlPickPlugin.ts           # OL 点选插件
+│   │   ├── OlSelectPlugin.ts         # OL 选择插件（点选 / 框选）
+│   │   ├── OlMeasurePlugin.ts        # OL 测量插件
+│   │   ├── OlPopupPlugin.ts          # OL 弹窗插件
+│   │   ├── OlFeatureRendererPlugin.ts # OL 要素渲染插件
 │   │   └── index.ts
 │   └── index.ts        # ol 模块导出
 ├── cesium/
@@ -50,12 +51,13 @@ src/
 │   │   ├── Edit.ts     # 要素编辑（手动拖拽）
 │   │   └── index.ts
 │   ├── plugins/
-│   │   ├── CesiumDrawPlugin.ts     # Cesium 绘制插件
-│   │   ├── CesiumEditPlugin.ts     # Cesium 编辑插件
-│   │   ├── CesiumPickPlugin.ts     # Cesium 点选插件
-│   │   ├── CesiumSelectPlugin.ts   # Cesium 选择插件（点选 / 框选）
-│   │   ├── CesiumMeasurePlugin.ts  # Cesium 测量插件
-│   │   ├── CesiumPopupPlugin.ts    # Cesium 弹窗插件
+│   │   ├── CesiumDrawPlugin.ts           # Cesium 绘制插件
+│   │   ├── CesiumEditPlugin.ts           # Cesium 编辑插件
+│   │   ├── CesiumPickPlugin.ts           # Cesium 点选插件
+│   │   ├── CesiumSelectPlugin.ts         # Cesium 选择插件（点选 / 框选）
+│   │   ├── CesiumMeasurePlugin.ts        # Cesium 测量插件
+│   │   ├── CesiumPopupPlugin.ts          # Cesium 弹窗插件
+│   │   ├── CesiumFeatureRendererPlugin.ts # Cesium 要素渲染插件
 │   │   └── index.ts
 │   └── index.ts        # cesium 模块导出
 ├── state/
@@ -121,7 +123,7 @@ npm run build
 
 1. 访问 [天地图控制台](https://console.tianditu.gov.cn/api/key)
 2. 注册账号并创建应用
-3. 获取 Key 后通过 `map.loadTianditu(key)` 加载底图
+3. 获取 Key 后通过 `map.addTiandituLayer(key)` 加载底图
 
 ## 功能清单
 
@@ -133,7 +135,7 @@ npm run build
 | 核心 | 2D/3D 引擎切换 | `switchTo()` 自动同步视角、图层、要素、事件 |
 | 核心 | 视角控制 | setCenter / getCenter / setZoom / getZoom / flyTo / getState / setState |
 | 核心 | 事件系统 | click / dblclick / rightclick / mousemove，跨切换持久化 |
-| 图层 | 天地图底图 | `loadTianditu(key, id)` 加载影像底图 + 注记，必须指定 ID |
+| 图层 | 天地图底图 | `addTiandituLayer(key, id)` 加载影像底图 + 注记，必须指定 ID |
 | 图层 | 图层移除 | `removeLayer(id)` 按 ID 移除指定图层（含天地图多层同步） |
 | 图层 | 图层显示/隐藏控制 | `setLayerVisible(id, boolean)` 按 ID 控制图层可见性 |
 | 图层 | 图层透明度设置 | `setLayerOpacity(id, 0~1)` 按 ID 动态调节透明度 |
@@ -206,7 +208,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
+map.addTiandituLayer('YOUR_TIANDITU_KEY', 'tdt-layer')
 ```
 
 ### 2. 创建 3D 地图
@@ -222,7 +224,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
+map.addTiandituLayer('YOUR_TIANDITU_KEY', 'tdt-layer')
 ```
 
 ### 3. 创建 2D/3D 切换地图（both 模式）
@@ -238,7 +240,7 @@ const map = await sdk.init({
   zoom: 12,
 })
 
-map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
+map.addTiandituLayer('YOUR_TIANDITU_KEY', 'tdt-layer')
 
 // 点击右上角按钮可在 2D 与 3D 之间切换
 // 切换时自动同步：视角、图层、绘制要素、事件监听
@@ -302,7 +304,7 @@ sdk.destroy()
 
 ```typescript
 // 加载天地图底图（必须指定图层 ID）
-map.loadTianditu('YOUR_TIANDITU_KEY', 'tdt-layer')
+map.addTiandituLayer('YOUR_TIANDITU_KEY', 'tdt-layer')
 
 // 根据 ID 移除指定图层
 map.removeLayer('tdt-layer')
@@ -557,7 +559,7 @@ stopArea()
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
 | addLayer | `layer: LayerInfo` | `void` | 添加图层（自动记录 + 触发渲染） |
-| loadTianditu | `key: string, id: string` | `void` | 加载天地图底图 |
+| addTiandituLayer | `key: string, id: string` | `void` | 加载天地图底图 |
 | removeLayer | `id: string` | `void` | 根据 ID 移除指定图层 |
 | setLayerVisible | `id, visible` | `void` | 设置图层可见性 |
 | setLayerOpacity | `id, opacity` | `void` | 设置图层透明度（0~1） |
@@ -755,7 +757,8 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 
 | 插件 | OL 实现 | Cesium 实现 | 提供方法 |
 |------|---------|-------------|----------|
-| Layer — Tianditu | `OlTiandituLayerPlugin` | `CesiumTiandituLayerPlugin` | `loadTianditu(key, id)` / `addLayer` |
+| Layer — Tianditu | `OlTiandituLayerPlugin` | `CesiumTiandituLayerPlugin` | `addTiandituLayer(key, id)` / `addLayer` |
+| FeatureRenderer | `OlFeatureRendererPlugin` | `CesiumFeatureRendererPlugin` | `addFeature` / `removeFeature` / `updateFeature` / `clearFeatures` |
 | Draw | `OlDrawPlugin` | `CesiumDrawPlugin` | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw` |
 | Edit | `OlEditPlugin` | `CesiumEditPlugin` | `editFeature` |
 | Pick | `OlPickPlugin` | `CesiumPickPlugin` | `pickAtPixel` |
@@ -982,13 +985,13 @@ if (current instanceof CesiumMap) {
 
 > **PickPlugin 未来定位**：当前 `pickAtPixel` 用于像素级拾取矢量要素，与 `SelectPlugin` 的点选模式有功能重叠。后续计划将 `pickAtPixel` 改为**图层属性查询**（如 WMS GetFeatureInfo、服务端查询），方法名可能随之变化，与 `SelectPlugin` 形成明确分工：Select 负责前端交互选择，Pick 负责服务端图层属性查询。
 
-#### 3. FeatureRendererPlugin（要素渲染）—— 中优先级
+#### 3. FeatureRendererPlugin（要素渲染）—— ✅ 已完成
 
-`addFeature` / `removeFeature` / `updateFeature` / `clearFeatures` 的状态管理已内建在 `BaseMap`（通过 `OverlayManager`），但实际渲染逻辑仍分散在 `OlMap` 和 `CesiumMap` 中。可将渲染部分提取为插件：
+`addFeature` / `removeFeature` / `updateFeature` / `clearFeatures` 的状态管理留在 `BaseMap`（`OverlayManager`），实际渲染逻辑已提取为 `OlFeatureRendererPlugin` / `CesiumFeatureRendererPlugin`：
 
-- 让"纯底图、不要矢量覆盖物"的场景更轻量
-- `map.unuse('feature')` 即可关闭要素渲染
-- 状态管理仍留在 `BaseMap`，渲染逻辑迁移到 `OlFeaturePlugin` / `CesiumFeaturePlugin`
+- `map.unuse('feature')` 即可关闭矢量覆盖物渲染，回落到仅状态管理
+- 插件安装时增强 `addFeature` 等方法（先调用 BaseMap 原型的状态管理，再渲染到引擎）
+- 卸载时 delete 增强方法，自动回落到 BaseMap 默认实现
 
 #### 4. CameraControlPlugin（3D 相机姿态）—— 中优先级
 
@@ -1004,10 +1007,10 @@ map.use(new CameraControlPlugin())
 
 ## 注意事项
 
-1. **天地图 Key**：使用前必须申请天地图 Key，并通过 `map.loadTianditu(key, id)` 加载底图，否则底图无法加载。加载时必须指定图层 ID，便于后续 `removeLayer` 管理。
+1. **天地图 Key**：使用前必须申请天地图 Key，并通过 `map.addTiandituLayer(key, id)` 加载底图，否则底图无法加载。加载时必须指定图层 ID，便于后续 `removeLayer` 管理。
 2. **体积优化**：Cesium 资源较大，建议按需加载或配置 CDN。
 3. **跨域**：天地图瓦片服务支持 CORS，已配置 `crossOrigin: 'anonymous'`。
 4. **事件持久化**：在 `both` 模式下，建议通过 `sdk.on()` / `sdk.off()` 注册事件，切换引擎后会自动重新绑定；直接调用 `map.on()` 的事件在切换后会失效。
 5. **Cesium off**：Cesium 引擎的 `off()` 当前为无操作（handler 未做跟踪回收），切换引擎时会通过销毁实例自动释放。OpenLayers 端的 `off()` 已正常实现。
-6. **同 id 去重**：`addFeature` 传入的 `feature.id` 若与已有要素重复，会自动覆盖旧要素（OverlayManager、2D 矢量层、3D entity 三层同步去重）。`loadTianditu` 传入的 `id` 若与已有图层重复，也会自动覆盖旧图层记录。
+6. **同 id 去重**：`addFeature` 传入的 `feature.id` 若与已有要素重复，会自动覆盖旧要素（OverlayManager、2D 矢量层、3D entity 三层同步去重）。`addTiandituLayer` 传入的 `id` 若与已有图层重复，也会自动覆盖旧图层记录。
 7. **交互式绘制自动同步**：`drawPoint` / `drawLine` / `drawPolygon` 完成后，要素会自动进入 `OverlayManager`，2D/3D 切换时无需额外处理即可恢复。

@@ -1,11 +1,11 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo } from '@/types'
+import type { MapConfig, MapEvent } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
-import { OlDraw, OlPopup } from './operation'
-import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlSelectPlugin, OlMeasurePlugin, OlPopupPlugin, OlTiandituLayerPlugin } from './plugins'
+import { OlPopup } from './operation'
+import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlSelectPlugin, OlMeasurePlugin, OlPopupPlugin, OlTiandituLayerPlugin, OlFeatureRendererPlugin } from './plugins'
 import 'ol/ol.css'
 
 /**
@@ -152,29 +152,10 @@ export class OlMap extends BaseMap {
     )
   }
 
-  addFeature(feature: FeatureInfo): void {
-    super.addFeature(feature)
-    OlDraw.addFeature(this.map, feature)
-  }
-
-  removeFeature(id: string): void {
-    super.removeFeature(id)
-    OlDraw.removeFeature(this.map, id)
-  }
-
-  updateFeature(id: string, style: Record<string, unknown>): void {
-    super.updateFeature(id, style)
-    OlDraw.updateFeature(this.map, id, style)
-  }
-
-  clearFeatures(): void {
-    super.clearFeatures()
-    OlDraw.clearFeatures(this.map)
-  }
-
   protected getDefaultPlugins(): MapPlugin[] {
     return [
       new OlTiandituLayerPlugin(),
+      new OlFeatureRendererPlugin(),
       new OlDrawPlugin(),
       new OlEditPlugin(),
       new OlPickPlugin(),

@@ -17,7 +17,7 @@ import { createForwardingProxy } from '@/utils'
  * 5. 提供跨切换持久化的事件注册能力（on/off）
  *
  * 不做的事：
- * - 不直接提供 flyTo、setCenter、loadTianditu 等地图操作方法
+ * - 不直接提供 flyTo、setCenter、addTiandituLayer 等地图操作方法
  * - 不持有引擎实例引用以外的任何地图状态
  * - 不处理 DOM 细节（由 ToggleButtonPlugin 等 UI 插件处理）
  *
@@ -34,7 +34,7 @@ import { createForwardingProxy } from '@/utils'
  * 2) both 模式 — 先以 2D 启动，自动挂载切换按钮
  *
  *    const map = await sdk.init({ type: 'both', container: 'map', ... })
- *    map.loadTianditu(KEY)
+ *    map.addTiandituLayer(KEY)
  *
  * 3) 手动切换 — 返回值根据 type 自动推断
  *
@@ -164,7 +164,7 @@ export class MapSDK {
     }
 
     // === 捕获旧实例的图层、绘制要素与视图范围 ===
-    // LayerManager 记录了用户通过 loadTianditu 添加的所有底图，
+    // LayerManager 记录了用户通过 addTiandituLayer 添加的所有底图，
     // OverlayManager 记录了通过 addFeature 添加的所有绘制要素（点、线、面）。
     const layers = this.impl?.getLayerManager().getAll() ?? []
     const features = this.impl?.getOverlayManager().getAll() ?? []
