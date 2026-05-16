@@ -5,7 +5,7 @@ import type { MapConfig, MapEvent } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
 import { OlPopup } from './operation'
-import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlSelectPlugin, OlMeasurePlugin, OlPopupPlugin, OlTiandituLayerPlugin, OlFeatureRendererPlugin } from './plugins'
+import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlSelectPlugin, OlMeasurePlugin, OlPopupPlugin, OlTiandituLayerPlugin, OlFeatureRendererPlugin, OlCameraControlPlugin } from './plugins'
 import 'ol/ol.css'
 
 /**
@@ -162,6 +162,7 @@ export class OlMap extends BaseMap {
       new OlSelectPlugin(),
       new OlMeasurePlugin(),
       new OlPopupPlugin(),
+      new OlCameraControlPlugin(),
     ]
   }
 }

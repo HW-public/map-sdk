@@ -16,4 +16,6 @@ export interface MapPlugin {
   readonly name: string
   install(map: BaseMap): void
   uninstall?(map: BaseMap): void
+  /** 插件适用的引擎类型。未指定时默认为 'both'，表示所有引擎通用。 */
+  readonly engine?: '2d' | '3d' | 'both'
 }

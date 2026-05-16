@@ -237,8 +237,13 @@ export class MapSDK {
     // 这里只迁移旧实例上「不在新实例默认列表里」的用户自定义插件，
     // 避免把 OL 专属插件错装到 Cesium 上（同名 use 会先 unuse 现有的）。
     const existingNames = new Set(this.impl!.getPlugins().map((p) => p.name))
+    const targetType = config.type
     for (const plugin of oldImpl?.getPlugins() ?? []) {
       if (!existingNames.has(plugin.name)) {
+        // 跳过声明了引擎限制但不兼容目标引擎的插件
+        // 'both' 或未指定（默认 both）表示所有引擎通用，不过滤
+        if (plugin.engine === '2d' && targetType !== '2d') continue
+        if (plugin.engine === '3d' && targetType !== '3d') continue
         this.impl!.use(plugin)
       }
     }

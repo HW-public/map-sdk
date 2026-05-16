@@ -39,6 +39,8 @@ src/
 │   │   ├── OlMeasurePlugin.ts        # OL 测量插件
 │   │   ├── OlPopupPlugin.ts          # OL 弹窗插件
 │   │   ├── OlFeatureRendererPlugin.ts # OL 要素渲染插件
+│   │   ├── OlCameraControlPlugin.ts  # OL 相机控制占位插件（2D 下空操作 + 警告）
+
 │   │   └── index.ts
 │   └── index.ts        # ol 模块导出
 ├── cesium/
@@ -58,6 +60,8 @@ src/
 │   │   ├── CesiumMeasurePlugin.ts        # Cesium 测量插件
 │   │   ├── CesiumPopupPlugin.ts          # Cesium 弹窗插件
 │   │   ├── CesiumFeatureRendererPlugin.ts # Cesium 要素渲染插件
+│   │   ├── CesiumCameraControlPlugin.ts  # Cesium 相机姿态控制插件
+
 │   │   └── index.ts
 │   └── index.ts        # cesium 模块导出
 ├── state/
@@ -84,7 +88,9 @@ src/
 │   ├── draw.ts         # 交互绘制示例
 │   ├── feature.ts      # 要素增删改查示例
 │   ├── layer.ts        # 图层控制示例
-│   └── popup.ts        # 弹窗示例
+│   ├── popup.ts        # 弹窗示例
+│   └── camera.ts       # 3D 相机姿态控制示例
+
 ├── ui/
 │   ├── ToggleButtonPluginBase.ts # 切换按钮抽象基类（name / isToggleButton / onToggle 解析由基类处理）
 │   ├── ToggleButtonPlugin.ts     # 默认切换按钮：文本按钮
@@ -748,7 +754,10 @@ export interface MapPlugin {
   readonly name: string
   install(map: BaseMap): void
   uninstall?(map: BaseMap): void
+  /** 插件适用的引擎类型。未指定时默认为 'both'，表示所有引擎通用。 */
+  readonly engine?: '2d' | '3d' | 'both'
 }
+
 ```
 
 **默认安装的插件**
@@ -862,7 +871,7 @@ map.use(new MyToggleButtonPlugin())                // onToggle 由 MapSDK 自动
 
 **引擎切换时的插件迁移**
 
-`MapSDK.switchTo()` 会自动把当前实例的插件迁移到新引擎实例上，所以切换 2D/3D 时无需重新 `use()`。
+`MapSDK.switchTo()` 会自动把当前实例的插件迁移到新引擎实例上。迁移时，声明了 `engine` 的插件会按目标引擎过滤（`engine='2d'` 的插件不会迁移到 3D，`engine='3d'` 的不会迁移到 2D），通用插件（未声明或 `'both'`）则自由迁移。所以切换 2D/3D 时无需重新 `use()`。
 
 ### 添加新的图层类型
 
@@ -993,18 +1002,15 @@ if (current instanceof CesiumMap) {
 - 插件安装时增强 `addFeature` 等方法（先调用 BaseMap 原型的状态管理，再渲染到引擎）
 - 卸载时 delete 增强方法，自动回落到 BaseMap 默认实现
 
-#### 4. CameraControlPlugin（3D 相机姿态）—— 中优先级
-
-`CesiumMap` 的 JSDoc 中提到了 `setPitch()` / `setHeading()`，但尚未实现。如果未来需要暴露俯仰/航向控制，可以作为一个 3D 专属插件：
-
-```typescript
-map.use(new CameraControlPlugin())
-;(map as any).setPitch(45)
-;(map as any).setHeading(90)
-```
-
-> **不建议插件化的功能**：`init` / `destroy`、视角控制（`setCenter` / `flyTo` 等）、事件系统（`on` / `off`）、`getState` / `setState`、`getViewportExtent` / `fitViewportExtent`。这些是引擎核心契约，所有实例都必须具备，且 `MapSDK.switchTo()` 依赖它们做状态同步。
-
+#### 4. CameraControlPlugin（3D 相机姿态）—— ✅ 已完成
+
+已实现 `CesiumCameraControlPlugin`（3D 实际生效）和 `OlCameraControlPlugin`（2D 空操作 + 警告）。通过 `setPitch(degrees)` / `setHeading(degrees)` 控制相机俯仰角和方位角。2D 下调用会打印控制台警告而非抛错，用户代码可无条件调用。
+
+```typescript
+map.setPitch(-45)   // 3D 俯视 45°，2D 打印警告
+map.setHeading(90)  // 3D 朝东，2D 打印警告
+```
+
 ## 注意事项
 
 1. **天地图 Key**：使用前必须申请天地图 Key，并通过 `map.addTiandituLayer(key, id)` 加载底图，否则底图无法加载。加载时必须指定图层 ID，便于后续 `removeLayer` 管理。

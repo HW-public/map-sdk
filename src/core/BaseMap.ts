@@ -277,6 +277,15 @@ export abstract class BaseMap implements IMap {
     throw new Error('PopupPlugin not installed. Call map.use(new PopupPlugin()) first.')
   }
 
+  /** 未安装 CameraControlPlugin 时抛错提示 */
+  setPitch(_degrees: number): void {
+    throw new Error('CameraControlPlugin not installed. Call map.use(new CameraControlPlugin()) first.')
+  }
+
+  setHeading(_degrees: number): void {
+    throw new Error('CameraControlPlugin not installed. Call map.use(new CameraControlPlugin()) first.')
+  }
+
   /** 恢复弹窗 — 遍历重放 showPopup；若未安装 PopupPlugin 则静默跳过 */
   restorePopups(popups: PopupOptions[]): void {
     if (!this._plugins.has('popup')) return

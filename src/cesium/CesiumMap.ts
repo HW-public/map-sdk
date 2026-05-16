@@ -3,7 +3,7 @@ import type { MapConfig, MapEvent } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
 import { CesiumPopup } from './operation'
-import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumSelectPlugin, CesiumMeasurePlugin, CesiumPopupPlugin, CesiumTiandituLayerPlugin, CesiumFeatureRendererPlugin } from './plugins'
+import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumSelectPlugin, CesiumMeasurePlugin, CesiumPopupPlugin, CesiumTiandituLayerPlugin, CesiumFeatureRendererPlugin, CesiumCameraControlPlugin } from './plugins'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -244,6 +244,7 @@ export class CesiumMap extends BaseMap {
       new CesiumSelectPlugin(),
       new CesiumMeasurePlugin(),
       new CesiumPopupPlugin(),
+      new CesiumCameraControlPlugin(),
     ]
   }
 }
