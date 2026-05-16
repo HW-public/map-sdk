@@ -35,6 +35,7 @@ src/
 │   │   ├── OlDrawPlugin.ts     # OL 绘制插件
 │   │   ├── OlEditPlugin.ts     # OL 编辑插件
 │   │   ├── OlPickPlugin.ts     # OL 点选插件
+│   │   ├── OlSelectPlugin.ts   # OL 选择插件（点选 / 框选）
 │   │   ├── OlMeasurePlugin.ts  # OL 测量插件
 │   │   ├── OlPopupPlugin.ts    # OL 弹窗插件
 │   │   └── index.ts
@@ -52,6 +53,7 @@ src/
 │   │   ├── CesiumDrawPlugin.ts     # Cesium 绘制插件
 │   │   ├── CesiumEditPlugin.ts     # Cesium 编辑插件
 │   │   ├── CesiumPickPlugin.ts     # Cesium 点选插件
+│   │   ├── CesiumSelectPlugin.ts   # Cesium 选择插件（点选 / 框选）
 │   │   ├── CesiumMeasurePlugin.ts  # Cesium 测量插件
 │   │   ├── CesiumPopupPlugin.ts    # Cesium 弹窗插件
 │   │   └── index.ts
@@ -179,7 +181,7 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 框选查询 | 拉框选择范围内的要素，计划通过 `SelectPlugin` 实现 | P2 |
+| ~~框选查询~~ | ~~拉框选择范围内的要素，计划通过 `SelectPlugin` 实现~~ ✅ 已完成 | P2 |
 
 #### 分析与服务
 
@@ -573,6 +575,7 @@ stopArea()
 | drawPolygon | `*DrawPlugin` | `() => void` | 交互式绘制面，点击加点、双击结束 |
 | stopDraw | `*DrawPlugin` | `void` | 终止当前交互式绘制 |
 | pickAtPixel | `*PickPlugin` | `PickResult[]` | 根据屏幕像素拾取要素 |
+| enableSelect | `*SelectPlugin` | `() => void` | 启用点选或框选模式，返回取消函数 |
 | editFeature | `*EditPlugin` | `() => void` | 交互式编辑要素，返回取消函数 |
 | measureDistance | `*MeasurePlugin` | `() => void` | 交互式距离测量，返回取消函数 |
 | measureArea | `*MeasurePlugin` | `() => void` | 交互式面积测量，返回取消函数 |
@@ -756,6 +759,7 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 | Draw | `OlDrawPlugin` | `CesiumDrawPlugin` | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw` |
 | Edit | `OlEditPlugin` | `CesiumEditPlugin` | `editFeature` |
 | Pick | `OlPickPlugin` | `CesiumPickPlugin` | `pickAtPixel` |
+| Select | `OlSelectPlugin` | `CesiumSelectPlugin` | `enableSelect({ mode, onSelect })` |
 | Measure | `OlMeasurePlugin` | `CesiumMeasurePlugin` | `measureDistance` / `measureArea` |
 | Popup | `OlPopupPlugin` | `CesiumPopupPlugin` | `showPopup` / `hidePopup` / `clearPopups` |
 
@@ -966,19 +970,17 @@ if (current instanceof CesiumMap) {
 
 当前 SDK 的核心服务（生命周期、视角、事件）和基础功能（图层管理、要素记录）已固化在 `BaseMap` 中，**绘制、编辑、点选、测量、弹窗** 等交互能力均已插件化。以下是尚未插件化、但架构上适合提取为插件的功能：
 
-#### 1. SelectPlugin（点选 / 框选）—— 高优先级
+#### 1. SelectPlugin（点选 / 框选）—— ✅ 已完成
 
-`src/ol/operation/Select.ts` 和 `src/cesium/operation/Select.ts` 已预留文件，但内部仍是 TODO / stub。这是目前最自然的插件候选：
-
-- 暴露 `enablePointSelect()` / `enableBoxSelect()` / `disableSelect()`
-- 和 `DrawPlugin`、`EditPlugin` 采用完全相同的实现模式
-- 让"框选查询"从"待实现"变为"安装即可用"
+已实现 `OlSelectPlugin` / `CesiumSelectPlugin`，通过 `enableSelect({ mode, onSelect })` 提供持续交互的点选和框选能力，返回取消函数。
 
 #### 2. LayerTypePlugin（图层类型注册）—— ✅ 已完成
 
 `BaseMap` 现已提供 `registerLayerType(type, renderer)`，`renderLayer` 从硬编码 `switch` 改为注册表分发。天地图渲染已提取为 `OlTiandituLayerPlugin` / `CesiumTiandituLayerPlugin`，随引擎默认安装。
 
 新增图层类型（如 WMS）不再需要修改引擎源码，只需编写对应的 `LayerTypePlugin` 并在 `getDefaultPlugins()` 中追加即可：`BaseMap.addLayer()` 和 `restoreLayers()` 一行不动。详见上方「添加新的图层类型」示例。
+
+> **PickPlugin 未来定位**：当前 `pickAtPixel` 用于像素级拾取矢量要素，与 `SelectPlugin` 的点选模式有功能重叠。后续计划将 `pickAtPixel` 改为**图层属性查询**（如 WMS GetFeatureInfo、服务端查询），方法名可能随之变化，与 `SelectPlugin` 形成明确分工：Select 负责前端交互选择，Pick 负责服务端图层属性查询。
 
 #### 3. FeatureRendererPlugin（要素渲染）—— 中优先级
 

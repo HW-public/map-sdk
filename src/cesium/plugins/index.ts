@@ -1,6 +1,7 @@
 export { CesiumDrawPlugin } from './CesiumDrawPlugin'
 export { CesiumEditPlugin } from './CesiumEditPlugin'
 export { CesiumPickPlugin } from './CesiumPickPlugin'
+export { CesiumSelectPlugin } from './CesiumSelectPlugin'
 export { CesiumMeasurePlugin } from './CesiumMeasurePlugin'
 export { CesiumPopupPlugin } from './CesiumPopupPlugin'
 export { CesiumTiandituLayerPlugin } from './CesiumTiandituLayerPlugin'

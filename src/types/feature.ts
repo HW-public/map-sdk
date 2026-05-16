@@ -26,3 +26,17 @@ export interface DrawOptions {
 export interface EditOptions {
   onComplete?: (feature: FeatureInfo) => void
 }
+
+/** 选择模式 */
+export type SelectMode = 'point' | 'box'
+
+/** 选择选项 */
+export interface SelectOptions {
+  mode?: SelectMode
+  onSelect?: (features: FeatureInfo[]) => void
+}
+
+/** 选择结果 */
+export interface SelectResult {
+  features: FeatureInfo[]
+}

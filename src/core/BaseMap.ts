@@ -1,4 +1,4 @@
-import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult, EditOptions, MeasureDistanceOptions, MeasureAreaOptions } from '@/types'
+import type { IMap, MapConfig, MapEvent, MapState, LayerInfo, TiandituLayerInfo, FeatureInfo, DrawOptions, PopupOptions, PickResult, EditOptions, MeasureDistanceOptions, MeasureAreaOptions, SelectOptions } from '@/types'
 import { getElement } from '@/utils'
 import { LayerManager, OverlayManager, PopupManager } from '@/state'
 import type { MapPlugin } from './Plugin'
@@ -244,6 +244,11 @@ export abstract class BaseMap implements IMap {
   /** 未安装 EditPlugin 时抛错提示 */
   editFeature(_id: string, _options?: EditOptions): () => void {
     throw new Error('EditPlugin not installed. Call map.use(new EditPlugin()) first.')
+  }
+
+  /** 未安装 SelectPlugin 时抛错提示 */
+  enableSelect(_options?: SelectOptions): () => void {
+    throw new Error('SelectPlugin not installed. Call map.use(new SelectPlugin()) first.')
   }
 
   /** 未安装 MeasurePlugin 时抛错提示 */

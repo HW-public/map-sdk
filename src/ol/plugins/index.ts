@@ -1,6 +1,7 @@
 export { OlDrawPlugin } from './OlDrawPlugin'
 export { OlEditPlugin } from './OlEditPlugin'
 export { OlPickPlugin } from './OlPickPlugin'
+export { OlSelectPlugin } from './OlSelectPlugin'
 export { OlMeasurePlugin } from './OlMeasurePlugin'
 export { OlPopupPlugin } from './OlPopupPlugin'
 export { OlTiandituLayerPlugin } from './OlTiandituLayerPlugin'
