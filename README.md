@@ -82,8 +82,9 @@ src/
 │   ├── layer.ts        # 图层控制示例
 │   └── popup.ts        # 弹窗示例
 ├── ui/
-│   ├── ToggleButtonPlugin.ts # 2D/3D 切换按钮插件（both 模式自动安装）
-│   └── CustomTogglePlugin.ts # 备选切换按钮：胶囊滑块 + 玻璃质感
+│   ├── ToggleButtonPluginBase.ts # 切换按钮抽象基类（name / isToggleButton / onToggle 解析由基类处理）
+│   ├── ToggleButtonPlugin.ts     # 默认切换按钮：文本按钮
+│   └── CustomTogglePlugin.ts     # 备选切换按钮：胶囊滑块 + 玻璃质感
 ├── index.ts            # SDK 对外导出
 └── main.ts             # 示例入口，聚合 examples/ 各模块
 ```
@@ -764,6 +765,7 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 |------|------|----------|------|
 | ToggleButton | `ToggleButtonPlugin` | `init({ type: 'both' })` | 在容器右上角挂载 2D/3D 切换按钮，跨引擎切换持久存在；如不需要可调用 `map.unuse('toggle-button')` |
 | ToggleButton（备选） | `CustomTogglePlugin` | 用户手动 `use` | 内置的胶囊滑块样式切换按钮，玻璃质感、激活态滑动渐变；同名替换默认实现；`onToggle` 可选（MapSDK 自动注入） |
+| ToggleButton（自定义） | 继承 `ToggleButtonPluginBase` | 用户手动 `use` | 自定义切换按钮基类，封装 `name` / `isToggleButton` / `onToggle` 解析 / `updateToggleButton` 挂载，子类只需实现三个 UI 方法 |
 
 > `isToggleButton = true` 是切换按钮插件的约定标记：单引擎模式（`init({type:'2d'\|'3d'})`）下 `BaseMap.use()` 会自动跳过带此标记的插件，避免渲染出"按了之后状态不一致"的假按钮。该标记取代了早期硬编码的 `name === 'toggle-button'` 判断。
 
