@@ -1,4 +1,6 @@
+export { ToggleButtonPluginBase } from './ToggleButtonPluginBase'
+export type { ToggleType, ToggleButtonBaseOptions } from './ToggleButtonPluginBase'
 export { ToggleButtonPlugin } from './ToggleButtonPlugin'
-export type { ToggleButtonOptions, ToggleType } from './ToggleButtonPlugin'
+export type { ToggleButtonOptions } from './ToggleButtonPlugin'
 export { CustomTogglePlugin } from './CustomTogglePlugin'
 export type { CustomTogglePluginOptions } from './CustomTogglePlugin'

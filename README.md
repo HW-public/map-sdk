@@ -178,7 +178,7 @@ npm run build
 
 | 功能 | 说明 | 优先级 |
 |------|------|--------|
-| 框选查询 | 拉框选择范围内的要素 | P2 |
+| 框选查询 | 拉框选择范围内的要素，计划通过 `SelectPlugin` 实现 | P2 |
 
 #### 分析与服务
 
@@ -585,7 +585,7 @@ stopArea()
 
 | 方法 | 参数 | 返回值 | 说明 |
 |------|------|--------|------|
-| use | `plugin: MapPlugin` | `BaseMap` | 注册插件，同名会先卸载旧实例；`name='toggle-button'` 在单引擎模式下自动跳过 |
+| use | `plugin: MapPlugin` | `BaseMap` | 注册插件，同名会先卸载旧实例；`isToggleButton=true` 的插件在单引擎模式下自动跳过 |
 | unuse | `name: string` | `BaseMap` | 卸载指定插件 |
 | getPlugins | - | `MapPlugin[]` | 获取已安装的所有插件 |
 
@@ -751,6 +751,7 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 
 | 插件 | OL 实现 | Cesium 实现 | 提供方法 |
 |------|---------|-------------|----------|
+| Layer — Tianditu | `OlTiandituLayerPlugin` | `CesiumTiandituLayerPlugin` | `loadTianditu(key, id)` / `addLayer` |
 | Draw | `OlDrawPlugin` | `CesiumDrawPlugin` | `drawPoint` / `drawLine` / `drawPolygon` / `stopDraw` |
 | Edit | `OlEditPlugin` | `CesiumEditPlugin` | `editFeature` |
 | Pick | `OlPickPlugin` | `CesiumPickPlugin` | `pickAtPixel` |
@@ -762,9 +763,9 @@ OlMap 和 CesiumMap 在 `init()` 末尾通过 `getDefaultPlugins()` 自动安装
 | 插件 | 实现 | 触发条件 | 说明 |
 |------|------|----------|------|
 | ToggleButton | `ToggleButtonPlugin` | `init({ type: 'both' })` | 在容器右上角挂载 2D/3D 切换按钮，跨引擎切换持久存在；如不需要可调用 `map.unuse('toggle-button')` |
-| ToggleButton（备选） | `CustomTogglePlugin` | 用户手动 `use` | 内置的胶囊滑块样式切换按钮，玻璃质感、激活态滑动渐变；同名替换默认实现 |
+| ToggleButton（备选） | `CustomTogglePlugin` | 用户手动 `use` | 内置的胶囊滑块样式切换按钮，玻璃质感、激活态滑动渐变；同名替换默认实现；`onToggle` 可选（MapSDK 自动注入） |
 
-> `name='toggle-button'` 是 SDK 与 MapSDK 之间的约定名：单引擎模式（`init({type:'2d'\|'3d'})`）下 `BaseMap.use()` 会自动跳过同名插件的安装，避免渲染出"按了之后状态不一致"的假按钮。
+> `isToggleButton = true` 是切换按钮插件的约定标记：单引擎模式（`init({type:'2d'\|'3d'})`）下 `BaseMap.use()` 会自动跳过带此标记的插件，避免渲染出"按了之后状态不一致"的假按钮。该标记取代了早期硬编码的 `name === 'toggle-button'` 判断。
 
 **按需卸载/重新安装**
 
@@ -781,7 +782,7 @@ map.unuse('measure').unuse('edit')
 
 // 查看当前已安装的插件
 console.log(map.getPlugins().map(p => p.name))
-// → ['draw', 'edit', 'pick', 'measure', 'popup']
+// → ['layer-tianditu', 'draw', 'edit', 'pick', 'measure', 'popup']
 ```
 
 **编写自定义插件**
@@ -810,44 +811,45 @@ map.use(new MyPlugin())
 
 **编写自定义切换按钮插件**
 
-如需替换默认切换按钮（如改用自家 UI 库、Vue/React 组件、不同视觉风格），写一个普通 MapPlugin 即可，遵守三条契约：
+如需替换默认切换按钮（如改用自家 UI 库、Vue/React 组件、不同视觉风格），继承 `ToggleButtonPluginBase` 即可：
 
 ```typescript
-import type { MapPlugin, BaseMap } from 'map-sdk'
+import { ToggleButtonPluginBase, type ToggleType } from 'map-sdk'
+import type { BaseMap } from 'map-sdk'
 
-type ToggleType = '2d' | '3d'
-
-class MyToggleButtonPlugin implements MapPlugin {
-  readonly name = 'toggle-button'                 // ① 用此 name —— SDK 自动同名替换默认实现，
-                                                  //   单引擎模式下 use() 也会自动跳过
+class MyToggleButtonPlugin extends ToggleButtonPluginBase {
   private el: HTMLElement | null = null
-  private current: ToggleType = '2d'
 
-  constructor(private onToggle: (t: ToggleType) => unknown) {}
-
-  install(map: BaseMap) {
-    if (!this.el) {                               // ② install 必须幂等：迁移到新引擎时只重挂方法
+  protected onInstall(map: BaseMap) {
+    if (!this.el) {                               // ① install 必须幂等：迁移到新引擎时只重挂方法
       this.el = document.createElement('button')
       this.el.textContent = '切换到 3D'
-      this.el.onclick = () => this.onToggle(this.current === '2d' ? '3d' : '2d')
+      this.el.onclick = () => this.triggerToggle() // 基类提供的 triggerToggle() 自动处理切换
       map.getContainer().appendChild(this.el)
-    }
-    ;(map as any).updateToggleButton = (t: ToggleType) => {  // ③ 暴露此方法供 SDK 同步文字
-      this.current = t
-      this.el!.textContent = t === '2d' ? '切换到 3D' : '切换到 2D'
     }
   }
 
-  uninstall(map: BaseMap) {
+  protected onUninstall(_map: BaseMap) {
     this.el?.remove()
     this.el = null
-    delete (map as any).updateToggleButton
+  }
+
+  protected onUpdateState(type: ToggleType) {     // ② SDK 切换后调用，同步按钮视觉状态
+    this.el!.textContent = type === '2d' ? '切换到 3D' : '切换到 2D'
   }
 }
 
 const map = await sdk.init({ type: 'both', container: 'map', ... })
-map.use(new MyToggleButtonPlugin((t) => sdk.switchTo(t)))
+map.use(new MyToggleButtonPlugin())                // onToggle 由 MapSDK 自动注入，无需显式传入
 ```
+
+基类 `ToggleButtonPluginBase` 已统一处理：
+- `name = 'toggle-button'` — 同名替换默认实现
+- `isToggleButton = true` — 单引擎模式下自动跳过
+- `onToggle` 延迟解析 — 构造不传时 fallback 到 `map.switchTo`
+- `updateToggleButton` 挂载/卸载 — SDK 调用以同步按钮状态
+
+子类只需实现三个纯 UI 方法：`onInstall`、`onUninstall`、`onUpdateState`。
 
 **引擎切换时的插件迁移**
 
@@ -897,27 +899,51 @@ export function addWms(viewer: Cesium.Viewer, url: string, layers: string) {
 }
 ```
 
-**3. 在引擎中注册 case**
+**3. 编写图层插件并注册**
 
-在 `OlMap.loadLayer` 和 `CesiumMap.loadLayer` 各加一行 `case`：
+为 2D 和 3D 各写一个 `LayerTypePlugin`，通过 `registerLayerType` 注册渲染器：
 
 ```typescript
-// src/ol/OlMap.ts
-import { addWms } from './layers/addWms'
+// src/ol/plugins/OlWmsLayerPlugin.ts
+import type { BaseMap, MapPlugin } from 'map-sdk'
+import type { LayerInfo, WmsLayerInfo } from 'map-sdk'
+import { addWms } from '@/ol/layers/addWms'
 
-protected loadLayer(layer: LayerInfo): void {
-  switch (layer.type) {
-    case 'tianditu':
-      addTianditu(this.map, { key: (layer as TiandituLayerInfo).key })
-      break
-    case 'wms':
-      addWms(this.map, (layer as WmsLayerInfo).url, (layer as WmsLayerInfo).layers)
-      break
+export class OlWmsLayerPlugin implements MapPlugin {
+  readonly name = 'layer-wms'
+
+  install(map: BaseMap): void {
+    map.registerLayerType('wms', (m, layer) => {
+      const olMap = (m as any).getOlMap() as import('ol').Map | null
+      addWms(olMap, (layer as WmsLayerInfo).url, (layer as WmsLayerInfo).layers)
+    })
   }
+
+  uninstall(_map: BaseMap): void {}
 }
 ```
 
-`BaseMap`、`restoreLayers`、`LayerManager` 均不需要修改。
+```typescript
+// src/cesium/plugins/CesiumWmsLayerPlugin.ts
+import type { BaseMap, MapPlugin } from 'map-sdk'
+import type { LayerInfo, WmsLayerInfo } from 'map-sdk'
+import { addWms } from '@/cesium/layers/addWms'
+
+export class CesiumWmsLayerPlugin implements MapPlugin {
+  readonly name = 'layer-wms'
+
+  install(map: BaseMap): void {
+    map.registerLayerType('wms', (m, layer) => {
+      const viewer = (m as any).getViewer() as import('cesium').Viewer | null
+      addWms(viewer, (layer as WmsLayerInfo).url, (layer as WmsLayerInfo).layers)
+    })
+  }
+
+  uninstall(_map: BaseMap): void {}
+}
+```
+
+引擎 `getDefaultPlugins()` 中追加即可，**无需修改 `BaseMap` 或 `restoreLayers`**。
 
 ### 添加自定义 3D 实体
 
@@ -933,6 +959,44 @@ if (current instanceof CesiumMap) {
   })
 }
 ```
+
+### 插件化路线图
+
+当前 SDK 的核心服务（生命周期、视角、事件）和基础功能（图层管理、要素记录）已固化在 `BaseMap` 中，**绘制、编辑、点选、测量、弹窗** 等交互能力均已插件化。以下是尚未插件化、但架构上适合提取为插件的功能：
+
+#### 1. SelectPlugin（点选 / 框选）—— 高优先级
+
+`src/ol/operation/Select.ts` 和 `src/cesium/operation/Select.ts` 已预留文件，但内部仍是 TODO / stub。这是目前最自然的插件候选：
+
+- 暴露 `enablePointSelect()` / `enableBoxSelect()` / `disableSelect()`
+- 和 `DrawPlugin`、`EditPlugin` 采用完全相同的实现模式
+- 让"框选查询"从"待实现"变为"安装即可用"
+
+#### 2. LayerTypePlugin（图层类型注册）—— ✅ 已完成
+
+`BaseMap` 现已提供 `registerLayerType(type, renderer)`，`renderLayer` 从硬编码 `switch` 改为注册表分发。天地图渲染已提取为 `OlTiandituLayerPlugin` / `CesiumTiandituLayerPlugin`，随引擎默认安装。
+
+新增图层类型（如 WMS）不再需要修改引擎源码，只需编写对应的 `LayerTypePlugin` 并在 `getDefaultPlugins()` 中追加即可：`BaseMap.addLayer()` 和 `restoreLayers()` 一行不动。详见上方「添加新的图层类型」示例。
+
+#### 3. FeatureRendererPlugin（要素渲染）—— 中优先级
+
+`addFeature` / `removeFeature` / `updateFeature` / `clearFeatures` 的状态管理已内建在 `BaseMap`（通过 `OverlayManager`），但实际渲染逻辑仍分散在 `OlMap` 和 `CesiumMap` 中。可将渲染部分提取为插件：
+
+- 让"纯底图、不要矢量覆盖物"的场景更轻量
+- `map.unuse('feature')` 即可关闭要素渲染
+- 状态管理仍留在 `BaseMap`，渲染逻辑迁移到 `OlFeaturePlugin` / `CesiumFeaturePlugin`
+
+#### 4. CameraControlPlugin（3D 相机姿态）—— 中优先级
+
+`CesiumMap` 的 JSDoc 中提到了 `setPitch()` / `setHeading()`，但尚未实现。如果未来需要暴露俯仰/航向控制，可以作为一个 3D 专属插件：
+
+```typescript
+map.use(new CameraControlPlugin())
+;(map as any).setPitch(45)
+;(map as any).setHeading(90)
+```
+
+> **不建议插件化的功能**：`init` / `destroy`、视角控制（`setCenter` / `flyTo` 等）、事件系统（`on` / `off`）、`getState` / `setState`、`getViewportExtent` / `fitViewportExtent`。这些是引擎核心契约，所有实例都必须具备，且 `MapSDK.switchTo()` 依赖它们做状态同步。
 
 ## 注意事项
 

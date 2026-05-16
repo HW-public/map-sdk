@@ -107,11 +107,10 @@ export class MapSDK {
 
     this.bothMode = true
     await this.switchTo('2d')
+    // 在 both 模式下向地图实例注入 switchTo，让切换按钮插件无需在构造时传 onToggle
+    ;(this.impl as any).switchTo = (type: '2d' | '3d') => this.switchTo(type)
     // both 模式下首次进入时安装切换按钮插件；后续切换由 switchTo 的迁移循环复用同一实例。
-    this.togglePlugin = new ToggleButtonPlugin({
-      onToggle: (t) => this.switchTo(t),
-      initialType: '2d',
-    })
+    this.togglePlugin = new ToggleButtonPlugin({ initialType: '2d' })
     this.impl!.use(this.togglePlugin)
     return createForwardingProxy<BaseMap>(() => this.getMap()) as OlMap | CesiumMap;
   }

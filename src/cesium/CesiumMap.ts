@@ -1,10 +1,9 @@
 import * as Cesium from 'cesium'
-import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
-import { addTianditu } from './layers/addTianditu'
 import { CesiumDraw, CesiumPopup } from './operation'
-import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumMeasurePlugin, CesiumPopupPlugin } from './plugins'
+import { CesiumDrawPlugin, CesiumEditPlugin, CesiumPickPlugin, CesiumMeasurePlugin, CesiumPopupPlugin, CesiumTiandituLayerPlugin } from './plugins'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 
 /**
@@ -48,16 +47,6 @@ export class CesiumMap extends BaseMap {
       duration: 0,
     })
     this.installDefaultPlugins()
-  }
-
-  /** 子类实现：根据 layer.type 分发到具体渲染模块 */
-  protected loadLayer(layer: LayerInfo): void {
-    switch (layer.type) {
-      case 'tianditu':
-        addTianditu(this.viewer, { key: (layer as TiandituLayerInfo).key, id: layer.id })
-        break
-      // 后续新增类型在这里加 case
-    }
   }
 
   removeLayer(id: string): void {
@@ -266,6 +255,13 @@ export class CesiumMap extends BaseMap {
   }
 
   protected getDefaultPlugins(): MapPlugin[] {
-    return [new CesiumDrawPlugin(), new CesiumEditPlugin(), new CesiumPickPlugin(), new CesiumMeasurePlugin(), new CesiumPopupPlugin()]
+    return [
+      new CesiumTiandituLayerPlugin(),
+      new CesiumDrawPlugin(),
+      new CesiumEditPlugin(),
+      new CesiumPickPlugin(),
+      new CesiumMeasurePlugin(),
+      new CesiumPopupPlugin(),
+    ]
   }
 }

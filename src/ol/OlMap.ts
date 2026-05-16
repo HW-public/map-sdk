@@ -1,12 +1,11 @@
 import { Map, View } from 'ol'
 import { defaults as defaultControls } from 'ol/control'
 import { fromLonLat, toLonLat } from 'ol/proj'
-import type { MapConfig, MapEvent, FeatureInfo, LayerInfo, TiandituLayerInfo } from '@/types'
+import type { MapConfig, MapEvent, FeatureInfo } from '@/types'
 import { BaseMap } from '@/core/BaseMap'
 import type { MapPlugin } from '@/core'
-import { addTianditu } from './layers/addTianditu'
 import { OlDraw, OlPopup } from './operation'
-import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlMeasurePlugin, OlPopupPlugin } from './plugins'
+import { OlDrawPlugin, OlEditPlugin, OlPickPlugin, OlMeasurePlugin, OlPopupPlugin, OlTiandituLayerPlugin } from './plugins'
 import 'ol/ol.css'
 
 /**
@@ -36,16 +35,6 @@ export class OlMap extends BaseMap {
       }),
     })
     this.installDefaultPlugins()
-  }
-
-  /** 子类实现：根据 layer.type 分发到具体渲染模块 */
-  protected loadLayer(layer: LayerInfo): void {
-    switch (layer.type) {
-      case 'tianditu':
-        addTianditu(this.map, { key: (layer as TiandituLayerInfo).key, id: layer.id })
-        break
-      // 后续新增类型在这里加 case
-    }
   }
 
   removeLayer(id: string): void {
@@ -184,6 +173,13 @@ export class OlMap extends BaseMap {
   }
 
   protected getDefaultPlugins(): MapPlugin[] {
-    return [new OlDrawPlugin(), new OlEditPlugin(), new OlPickPlugin(), new OlMeasurePlugin(), new OlPopupPlugin()]
+    return [
+      new OlTiandituLayerPlugin(),
+      new OlDrawPlugin(),
+      new OlEditPlugin(),
+      new OlPickPlugin(),
+      new OlMeasurePlugin(),
+      new OlPopupPlugin(),
+    ]
   }
 }

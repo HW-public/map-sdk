@@ -20,7 +20,7 @@ import type { MapPlugin } from './Plugin'
  *
  * 新增图层类型时的步骤：
  * - 加模块文件（如 addWms.ts）
- * - OlMap.loadLayer / CesiumMap.loadLayer 各加一行 case
+ * - 写 OlWmsLayerPlugin / CesiumWmsLayerPlugin 调用 registerLayerType('wms', ...)
  * - BaseMap 和 restoreLayers 一行不动
  */
 export abstract class BaseMap implements IMap {
@@ -30,6 +30,7 @@ export abstract class BaseMap implements IMap {
   protected popupMgr = new PopupManager()
   protected layerMgr = new LayerManager()
   private _plugins = new Map<string, MapPlugin>()
+  private _layerRenderers = new Map<string, (map: BaseMap, layer: LayerInfo) => void>()
   private _bothMode = false
 
   protected constructor(config: MapConfig) {
@@ -67,14 +68,31 @@ export abstract class BaseMap implements IMap {
     }
   }
 
-  // ==================== 3. 图层操作（基类默认实现，子类 override 渲染） ====================
+  // ==================== 3. 图层操作（基类默认实现，子类可补充渲染） ====================
 
-  /** 引擎内部钩子：根据 layer.type 用 switch 分发到具体渲染模块 */
-  protected abstract loadLayer(layer: LayerInfo): void
+  /**
+   * 注册图层类型渲染器。
+   *
+   * 插件通过此方法声明自己能处理哪种 layer.type，
+   * 后续 addLayer / restoreLayers 会自动分发到对应渲染器。
+   */
+  registerLayerType(type: string, renderer: (map: BaseMap, layer: LayerInfo) => void): void {
+    this._layerRenderers.set(type, renderer)
+  }
+
+  /** 引擎内部钩子：根据 layer.type 分发到已注册的渲染器 */
+  protected renderLayer(layer: LayerInfo): void {
+    if (!layer.type) throw new Error('Layer type is required')
+    const renderer = this._layerRenderers.get(layer.type)
+    if (!renderer) {
+      throw new Error(`No layer renderer registered for type: ${layer.type}`)
+    }
+    renderer(this, layer)
+  }
 
   addLayer(layer: LayerInfo): void {
     this.layerMgr.add(layer)
-    this.loadLayer(layer)
+    this.renderLayer(layer)
     if (layer.id) {
       if (layer.visible !== undefined) this.setLayerVisible(layer.id, layer.visible)
       if (layer.opacity !== undefined) this.setLayerOpacity(layer.id, layer.opacity)
@@ -161,9 +179,9 @@ export abstract class BaseMap implements IMap {
    * 同名插件重复安装时会先卸载旧实例。
    */
   use(plugin: MapPlugin): BaseMap {
-    // name='toggle-button' 是 2D/3D 切换按钮的约定名：单引擎模式下没有切换语义，
+    // isToggleButton 标记的插件是 2D/3D 切换按钮：单引擎模式下没有切换语义，
     // 静默跳过，避免渲染出点了也无法保持一致状态的"假"按钮。
-    if (plugin.name === 'toggle-button' && !this._bothMode) return this
+    if ((plugin as any).isToggleButton && !this._bothMode) return this
     if (this._plugins.has(plugin.name)) {
       this.unuse(plugin.name)
     }

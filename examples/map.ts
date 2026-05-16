@@ -1,5 +1,5 @@
 import { BaseMap, MapSDK } from '@/core'
-import {CustomTogglePlugin} from "@/ui";
+import { CustomTogglePlugin } from '@/ui'
 
 const sdk: MapSDK = new MapSDK()
 const map: BaseMap = await sdk.init({
@@ -9,5 +9,6 @@ const map: BaseMap = await sdk.init({
   zoom: 12,
 })
 // name 与默认按钮相同，map.use 会自动卸载默认实现
-map.use(new CustomTogglePlugin({ onToggle: (t) => sdk.switchTo(t) }))
+// onToggle 由 MapSDK 自动注入，无需显式传入
+map.use(new CustomTogglePlugin())
 export { map, sdk }
