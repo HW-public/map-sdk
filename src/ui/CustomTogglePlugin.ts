@@ -1,9 +1,9 @@
-import type { BaseMap, MapPlugin } from '@/core'
-import type { ToggleType } from './ToggleButtonPlugin'
+import type { BaseMap } from '@/core'
+import { ToggleButtonPluginBase, type ToggleType } from './ToggleButtonPluginBase'
 
 export interface CustomTogglePluginOptions {
-  /** 按钮被点击时触发，参数为目标引擎类型 */
-  onToggle: (type: ToggleType) => unknown
+  /** 按钮被点击时触发，参数为目标引擎类型。不传时自动使用 map.switchTo（MapSDK 在 both 模式下注入） */
+  onToggle?: (type: ToggleType) => unknown
   /** 初始引擎类型，默认 '2d' */
   initialType?: ToggleType
 }
@@ -70,37 +70,33 @@ const CSS = `
  * CustomTogglePlugin — 滑块式 2D/3D 切换按钮（自定义按钮插件）。
  *
  * 这是 ToggleButtonPlugin 的另一种 UI 实现，演示如何编写一个自定义的
- * 切换按钮：只要 `name = 'toggle-button'`、install 幂等、并暴露
- * `updateToggleButton` 方法即可。
+ * 切换按钮：继承 ToggleButtonPluginBase 即可，name / isToggleButton /
+ * onToggle 解析和 updateToggleButton 挂载由基类处理。
  *
  * 视觉风格：胶囊形分段控件，激活态滑块平滑滑动并切换渐变色（2D 蓝、3D 橙），
  * 自带 backdrop-filter 玻璃质感，CSS 在首次 install 时自动注入到 document.head。
  *
  * 与 ToggleButtonPlugin 互斥（共用 name='toggle-button'）：
  * - both 模式下手动 use 自身，会自动顶替 MapSDK 已安装的默认 ToggleButtonPlugin。
- * - 单引擎模式下，BaseMap.use 会按 name 静默跳过（不渲染、不存储），
+ * - 单引擎模式下，BaseMap.use 会按 isToggleButton 标记静默跳过（不渲染、不存储），
  *   所以即使误用也不会在 init({ type: '2d' }) / init({ type: '3d' }) 下出现假按钮。
  *
  * @example
  * import { CustomTogglePlugin } from '@/ui'
  *
  * const map = await sdk.init({ type: 'both', container: 'map', ... })
- * map.use(new CustomTogglePlugin({ onToggle: (t) => sdk.switchTo(t) }))
+ * map.use(new CustomTogglePlugin())   // onToggle 由 MapSDK 自动注入
  */
-export class CustomTogglePlugin implements MapPlugin {
-  readonly name = 'toggle-button'
+export class CustomTogglePlugin extends ToggleButtonPluginBase {
   private wrap: HTMLElement | null = null
   private seg2d: HTMLElement | null = null
   private seg3d: HTMLElement | null = null
-  private current: ToggleType
-  private readonly onToggle: (type: ToggleType) => unknown
 
-  constructor(options: CustomTogglePluginOptions) {
-    this.onToggle = options.onToggle
-    this.current = options.initialType ?? '2d'
+  constructor(options: CustomTogglePluginOptions = {}) {
+    super(options)
   }
 
-  install(map: BaseMap): void {
+  protected onInstall(map: BaseMap): void {
     this.injectStyle()
 
     if (!this.wrap) {
@@ -114,14 +110,14 @@ export class CustomTogglePlugin implements MapPlugin {
       seg2d.className = 'map-sdk-custom-toggle__seg'
       seg2d.textContent = '2D'
       seg2d.addEventListener('click', () => {
-        if (this.current !== '2d') this.onToggle('2d')
+        if (this.current !== '2d') this.triggerToggle()
       })
 
       const seg3d = document.createElement('div')
       seg3d.className = 'map-sdk-custom-toggle__seg'
       seg3d.textContent = '3D'
       seg3d.addEventListener('click', () => {
-        if (this.current !== '3d') this.onToggle('3d')
+        if (this.current !== '3d') this.triggerToggle()
       })
 
       wrap.append(slider, seg2d, seg3d)
@@ -132,22 +128,22 @@ export class CustomTogglePlugin implements MapPlugin {
       this.seg3d = seg3d
       this.applyState(this.current)
     }
-
-    ;(map as any).updateToggleButton = (type: ToggleType) => this.applyState(type)
   }
 
-  uninstall(map: BaseMap): void {
+  protected onUninstall(_map: BaseMap): void {
     if (this.wrap) {
       this.wrap.remove()
       this.wrap = null
       this.seg2d = null
       this.seg3d = null
     }
-    delete (map as any).updateToggleButton
+  }
+
+  protected onUpdateState(type: ToggleType): void {
+    this.applyState(type)
   }
 
   private applyState(type: ToggleType): void {
-    this.current = type
     this.wrap?.classList.toggle('map-sdk-custom-toggle--3d', type === '3d')
     this.seg2d?.classList.toggle('map-sdk-custom-toggle__seg--active', type === '2d')
     this.seg3d?.classList.toggle('map-sdk-custom-toggle__seg--active', type === '3d')
